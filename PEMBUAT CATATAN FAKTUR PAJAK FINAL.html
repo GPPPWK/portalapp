@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaxFormatter V16 - Precision Unit Parsing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] },
+                    colors: {
+                        brand: { 500: '#3b82f6' },
+                        accentPurp: '#a855f7',
+                        accentPink: '#ec4899',
+                        darkCard: '#131520'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #090a0f;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(168, 85, 247, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.1) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #e2e8f0;
+        }
+        .glass {
+            background: rgba(19, 21, 32, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .gradient-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+            transition: all 0.3s ease;
+        }
+        .gradient-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .excel-mirror-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #ffffff;
+            margin-bottom: 20px;
+            background: rgba(0,0,0,0.3);
+        }
+        .excel-mirror-table td { border: 1px solid #444; padding: 4px 8px; height: 24px; }
+        .header-row { background: rgba(15, 23, 42, 0.9); font-weight: bold; color: #fff; }
+        .data-row { background: transparent; }
+        .footer-row { background: rgba(255,255,255,0.03); }
+        .text-num { text-align: right; font-weight: bold; }
+        .text-accent { color: #3b82f6; }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #090a0f; }
+        ::-webkit-scrollbar-thumb { background: #1f2235; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+
+        .bold-header { font-weight: 800 !important; color: #fff !important; }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased pb-12">
+
+    <!-- OVERLAY POPUP NOTIFICATION -->
+    <div id="popupModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="bg-slate-900 border border-white/10 p-8 rounded-3xl shadow-2xl max-w-sm w-full transform scale-95 transition-transform duration-300 flex flex-col items-center relative" id="popupContent">
+            <div class="absolute -top-10 w-32 h-32 bg-brand-500/20 blur-3xl rounded-full pointer-events-none"></div>
+            <div id="popupIcon" class="flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 mb-5 shadow-inner z-10 relative">
+                <i data-lucide="check-circle" class="w-10 h-10"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white text-center mb-2 relative z-10" id="popupTitle">Berhasil</h3>
+            <p class="text-sm text-slate-400 text-center mb-8 leading-relaxed relative z-10" id="popupMessage">Pesan di sini</p>
+            <button onclick="closePopup()" class="w-full bg-gradient-to-r from-brand-500 to-accentPurp hover:opacity-90 text-white font-bold py-3.5 rounded-xl transition shadow-lg relative z-10 hover:-translate-y-0.5">
+                OK, Lanjutkan
+            </button>
+        </div>
+    </div>
+
+    <header class="border-b border-white/5 py-4 px-6 mb-8 glass sticky top-0 z-50">
+        <div class="max-w-[1500px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 rounded-xl bg-gradient-to-tr from-accentPurp to-brand-500 text-white shadow-lg">
+                    <i data-lucide="calculator" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        TaxFormatter <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">V16 Precision Parse</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Alat Untuk Membuat Laporan Faktur Pajak</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1500px] mx-auto px-4 md:px-6 grid grid-cols-1 xl:grid-cols-12 gap-8">
+        <section class="xl:col-span-4 space-y-6 flex flex-col">
+            <div class="glass p-5 rounded-2xl shadow-xl relative overflow-hidden flex-shrink-0">
+                <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-accentPurp via-accentPink to-brand-500"></div>
+                <h2 class="text-sm font-bold text-white flex items-center gap-2 mb-3">
+                    <i data-lucide="clipboard-paste" class="text-accentPurp w-4 h-4"></i> 1. Tempel Nota
+                </h2>
+                <textarea id="rawInput" rows="5" placeholder="Tempel seluruh teks nota di sini..." class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-600 font-mono"></textarea>
+                <button onclick="parseData()" class="w-full mt-3 gradient-btn text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-brand-500/20 hover:scale-[1.02]">
+                    <i data-lucide="zap" class="w-4 h-4"></i> Ekstrak Data Otomatis
+                </button>
+            </div>
+
+            <div class="glass p-5 rounded-2xl shadow-xl flex-shrink-0">
+                <h2 class="text-sm font-bold text-white flex items-center gap-2 border-b border-white/5 pb-2 mb-3">
+                    <i data-lucide="building-2" class="text-brand-500 w-4 h-4"></i> 2. Data Induk Nota
+                </h2>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="col-span-2">
+                        <label class="block text-[10px] text-slate-400 mb-1 uppercase">Outlet</label>
+                        <input id="outletName" type="text" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:border-brand-500 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-400 mb-1 uppercase">No. Nota</label>
+                        <input id="notaNo" type="text" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:border-brand-500 focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-400 mb-1 uppercase">Tgl</label>
+                        <input id="notaDate" type="date" class="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:border-brand-500 focus:outline-none transition">
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass p-5 rounded-2xl shadow-xl flex-1 flex flex-col">
+                <h2 class="text-sm font-bold text-white flex items-center justify-between border-b border-white/5 pb-2 mb-3">
+                    <span class="flex items-center gap-2"><i data-lucide="boxes" class="text-emerald-400 w-4 h-4"></i> 3. Keranjang Barang</span>
+                    <span id="cartCount" class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-white font-bold border border-white/20">0 Item</span>
+                </h2>
+                <div id="currentItemsList" class="flex-1 overflow-y-auto space-y-2 mb-4 max-h-[150px]">
+                    <div class="flex flex-col items-center justify-center h-full text-[10px] text-slate-500 py-4 italic space-y-2 opacity-50">
+                        <i data-lucide="package-open" class="w-8 h-8"></i>
+                        <span>Belum ada barang.</span>
+                    </div>
+                </div>
+                <button onclick="saveInvoiceToMaster()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm shadow-lg shadow-emerald-500/20 hover:scale-[1.02] transition">
+                    <i data-lucide="save" class="w-4 h-4"></i> 4. Simpan ke Antrean Master
+                </button>
+            </div>
+        </section>
+
+        <section class="xl:col-span-8 flex flex-col space-y-6">
+            <div class="glass p-6 rounded-2xl shadow-xl flex-1 flex flex-col overflow-hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-white/5 pb-4 mb-4 gap-4">
+                    <div>
+                        <h2 class="text-md font-bold text-white flex items-center gap-2">
+                            <i data-lucide="eye" class="text-emerald-400 w-5 h-5"></i> Master Antrean (Mirror Export)
+                        </h2>
+                        <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">Catatan Nota Yang Sudah Masuk</p>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="clearMaster()" class="flex-1 sm:flex-none text-[10px] text-red-400 hover:text-red-300 font-bold flex items-center justify-center gap-1 bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20 transition">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Kosongkan
+                        </button>
+                        <button onclick="copyToClipboard()" class="flex-1 sm:flex-none text-[10px] text-brand-500 hover:text-brand-400 font-bold flex items-center justify-center gap-1 bg-brand-500/10 px-3 py-2 rounded-lg border border-brand-500/20 shadow-lg transition">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Salin Cepat
+                        </button>
+                    </div>
+                </div>
+                <div id="mirrorContainer" class="flex-1 overflow-y-auto pr-2 space-y-6 custom-scrollbar">
+                    <div id="emptyMsg" class="flex flex-col items-center justify-center h-full text-slate-500 py-20 opacity-30">
+                        <i data-lucide="layout-grid" class="w-12 h-12"></i>
+                        <p class="text-sm font-medium">Antrean master masih kosong.</p>
+                    </div>
+                </div>
+                <div class="mt-6 pt-6 border-t border-white/5">
+                    <button onclick="exportToExcel()" class="w-full gradient-btn py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 shadow-xl hover:scale-[1.01]">
+                        <i data-lucide="download" class="w-5 h-5"></i> Unduh File Excel (.xlsx)
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        lucide.createIcons();
+        let currentItems = [];
+        let masterInvoices = [];
+
+        function fmt(num) {
+            return new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(num);
+        }
+
+        function showPopup(title, message, isSuccess = true) {
+            const modal = document.getElementById('popupModal');
+            const content = document.getElementById('popupContent');
+            const icon = document.getElementById('popupIcon');
+            document.getElementById('popupTitle').innerText = title;
+            document.getElementById('popupMessage').innerHTML = message;
+            if (isSuccess) {
+                icon.className = "flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 mb-5 shadow-inner z-10 relative";
+                icon.innerHTML = `<i data-lucide="check-circle" class="w-10 h-10 animate-bounce"></i>`;
+            } else {
+                icon.className = "flex items-center justify-center w-20 h-20 rounded-full bg-red-500/20 text-red-400 mb-5 shadow-inner z-10 relative";
+                icon.innerHTML = `<i data-lucide="alert-triangle" class="w-10 h-10 animate-pulse"></i>`;
+            }
+            lucide.createIcons();
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+        }
+
+        function closePopup() {
+            const modal = document.getElementById('popupModal');
+            const content = document.getElementById('popupContent');
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => { modal.classList.remove('flex'); modal.classList.add('hidden'); }, 300);
+        }
+
+        function parseData() {
+            try {
+                const rawText = document.getElementById('rawInput').value;
+                if (!rawText.trim()) return showPopup('Kosong', 'Tempel teks nota!', false);
+                const cvMatch = rawText.match(/Dikirim ke:\s*(.+?)(?=\n|Alamat:|$)/i);
+                if (cvMatch) document.getElementById('outletName').value = cvMatch[1].trim();
+                const notaMatch = rawText.match(/Nota Penjualan:\s*([A-Za-z0-9]+)/i);
+                if (notaMatch) document.getElementById('notaNo').value = notaMatch[1].trim();
+                const dateMatch = rawText.match(/Tanggal Nota:\s*([0-9-]{10})/i);
+                if (dateMatch) document.getElementById('notaDate').value = dateMatch[1].trim();
+                
+                currentItems = [];
+                let prodMatch = rawText.match(/SubTotal([\s\S]*?)Nilai Tagihan/i);
+                if (!prodMatch) prodMatch = rawText.match(/SubTotal([\s\S]*)/i);
+                
+                if (prodMatch) {
+                    let prodString = prodMatch[1].trim();
+                    prodString = prodString.replace(/(Nama Produk|Orderan|Btl\/Pcs|Diskon|Harga Jual|Cek Stok|SubTotal)/gi, '').trim();
+                    
+                    let safeProdStr = prodString.replace(/(\.00)\s*(?=[A-Za-z])/g, "$1|||");
+                    let itemsArray = safeProdStr.split('|||');
+                    
+                    for (let itemStr of itemsArray) {
+                        itemStr = itemStr.trim();
+                        if (!itemStr) continue;
+                        
+                        // PRECISION PARSING V16:
+                        // Cari "pcs" dulu sebagai jangkar, karena jumlah unit (Drum/Dus) selalu di kirinya.
+                        const pcsMatch = itemStr.match(/(\d+)\s*pcs/i);
+                        if (pcsMatch) {
+                            const beforePcs = itemStr.substring(0, pcsMatch.index).trim();
+                            // Ambil angka dan unit TERAKHIR sebelum kata "pcs"
+                            const unitMatches = beforePcs.match(/(\d+)\s*(Dus|Drum|Pail|Karton|Box|Pcs|Botol|Kaleng)/gi);
+                            if (unitMatches) {
+                                const lastUnitStr = unitMatches[unitMatches.length - 1];
+                                const finalMatch = lastUnitStr.match(/(\d+)\s*(Dus|Drum|Pail|Karton|Box|Pcs|Botol|Kaleng)/i);
+                                
+                                let qtyRaw = parseInt(finalMatch[1]);
+                                let unitRaw = finalMatch[2].toLowerCase();
+                                
+                                // Nama adalah segalanya sebelum match unit terakhir tadi
+                                const unitIdx = beforePcs.lastIndexOf(lastUnitStr);
+                                let name = beforePcs.substring(0, unitIdx).trim();
+
+                                let multiplier = 1, sat = "Dus";
+                                if (unitRaw === 'drum') { multiplier = 200; sat = 'Liter'; }
+                                else if (unitRaw === 'pail') { multiplier = 1; sat = 'Pail'; }
+                                else { sat = unitRaw.charAt(0).toUpperCase() + unitRaw.slice(1); }
+                                
+                                let netto = 0;
+                                let discMatch = itemStr.match(/(\d+(?:\.\d+)?)\s*%/);
+                                let hargaMatch = itemStr.match(/%\s*([\d,]+\.\d{2})/);
+                                
+                                if (hargaMatch) {
+                                    let harga = parseFloat(hargaMatch[1].replace(/,/g, ''));
+                                    let pcs = parseInt(pcsMatch[1]);
+                                    let disc = discMatch ? parseFloat(discMatch[1]) : 0;
+                                    let gross = harga * pcs;
+                                    netto = Math.round((gross - (gross * disc / 100)) * 100) / 100;
+                                }
+                                currentItems.push({ name, qtyRaw, multiplier, qtyTotal: qtyRaw * multiplier, sat, netto });
+                            }
+                        }
+                    }
+                }
+                renderCart();
+                if (currentItems.length === 0) showPopup('Gagal', 'Produk tidak ditemukan.', false);
+                else showPopup('Berhasil!', `Nota berhasil diproses dengan presisi tinggi.`, true);
+            } catch (e) { console.error(e); showPopup('Error', 'Gagal mengekstrak.', false); }
+        }
+
+        function removeCartItem(idx) { currentItems.splice(idx, 1); renderCart(); }
+
+        function renderCart() {
+            const list = document.getElementById('currentItemsList');
+            document.getElementById('cartCount').innerText = `${currentItems.length} Item`;
+            list.innerHTML = '';
+            if (currentItems.length === 0) {
+                list.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-[10px] text-slate-500 py-4 italic space-y-2 opacity-50"><i data-lucide="package-open" class="w-8 h-8"></i><span>Kosong.</span></div>`;
+                lucide.createIcons(); return;
+            }
+            currentItems.forEach((item, idx) => {
+                list.innerHTML += `
+                <div class="flex items-center justify-between bg-slate-800/50 p-3 rounded-xl border border-emerald-500/30 mb-2">
+                    <div class="flex-1 min-w-0 pr-2">
+                        <p class="text-[11px] font-bold text-white truncate">${item.name}</p>
+                        <p class="text-[10px] text-slate-400 mt-1"><span class="text-emerald-400 font-bold">${item.qtyTotal} ${item.sat}</span> • Rp ${fmt(item.netto)}</p>
+                    </div>
+                    <button onclick="removeCartItem(${idx})" class="text-slate-500 hover:text-red-400 p-1.5 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </div>`;
+            });
+            lucide.createIcons();
+        }
+
+        function saveInvoiceToMaster() {
+            const outlet = document.getElementById('outletName').value;
+            const notaNo = document.getElementById('notaNo').value;
+            const date = document.getElementById('notaDate').value;
+            if (!outlet || currentItems.length === 0) return showPopup('Peringatan', 'Lengkapi data!', false);
+            masterInvoices.push({ id: Date.now(), outlet, notaNo, tgl: date, totalNetto: currentItems.reduce((sum, i) => sum + i.netto, 0), items: [...currentItems] });
+            document.getElementById('rawInput').value = '';
+            document.getElementById('notaNo').value = '';
+            showPopup('Tersimpan', `Masuk ke antrean Master.`);
+            currentItems = []; renderCart(); renderMirror();
+        }
+
+        function clearMaster() { if (confirm('Kosongkan Master?')) { masterInvoices = []; renderMirror(); } }
+        function deleteInvoice(id) { masterInvoices = masterInvoices.filter(x => x.id !== id); renderMirror(); }
+
+        function renderMirror() {
+            const container = document.getElementById('mirrorContainer');
+            container.innerHTML = '';
+            if (masterInvoices.length === 0) {
+                container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-slate-500 py-20 opacity-30"><i data-lucide="layout-grid" class="w-12 h-12"></i><p class="text-sm">Master Kosong.</p></div>`;
+                lucide.createIcons(); return;
+            }
+            masterInvoices.forEach((inv, idx) => {
+                const block = document.createElement('div');
+                block.className = "relative group mb-6";
+                let html = `
+                    <div class="absolute -left-2 -top-3 text-[10px] bg-accentPurp text-white px-2 py-0.5 rounded font-bold z-10 shadow-lg">NOTA ${idx+1}</div>
+                    <button onclick="deleteInvoice(${inv.id})" class="absolute -right-2 -top-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition z-20 shadow-lg hover:bg-red-600"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                    <table class="excel-mirror-table">
+                        <tr class="header-row">
+                            <td colspan="1" style="width:30%" class="bold-header">${inv.outlet}</td>
+                            <td class="text-center bold-header">TGL</td><td class="text-center bold-header">QTY</td><td class="text-center bold-header">SAT</td><td class="text-center bold-header">HARGA</td><td class="text-center bold-header">PPN</td><td class="text-center bold-header">NETTO</td><td class="text-center bold-header">/DUS</td><td class="text-center bold-header">/1.11</td><td style="width:15%"></td>
+                        </tr>`;
+                inv.items.forEach((item, index) => {
+                    let dus = item.netto / item.qtyTotal, per111 = dus / 1.11, harga = item.qtyTotal * per111, ppn = harga * 0.11;
+                    let printNota = (index === inv.items.length - 1) ? inv.notaNo : "";
+                    html += `
+                        <tr class="data-row hover:bg-white/5 transition">
+                            <td>${item.name}</td><td class="text-center">${inv.tgl}</td><td class="text-num text-accent">${item.qtyTotal}</td><td class="text-center font-bold">${item.sat}</td><td class="text-num">${fmt(harga)}</td><td class="text-num">${fmt(ppn)}</td><td class="text-num font-extrabold text-white">${fmt(item.netto)}</td><td class="num-cell text-num">${fmt(dus)}</td><td class="num-cell text-num text-accentPurp">${fmt(per111)}</td><td class="text-center font-bold text-slate-400">${printNota}</td>
+                        </tr>`;
+                });
+                html += `<tr class="footer-row"><td colspan="6"></td><td class="text-num border-2 border-emerald-500 font-bold text-emerald-400">${fmt(inv.totalNetto)}</td><td colspan="3"></td></tr></table>`;
+                block.innerHTML = html; container.appendChild(block);
+            });
+            lucide.createIcons();
+        }
+
+        function copyToClipboard() {
+            if(masterInvoices.length === 0) return showPopup('Kosong', 'Antrean kosong!', false);
+            let html = `<table border="1" style="border-collapse: collapse; font-family: Calibri, sans-serif; font-size: 10pt;">`;
+            masterInvoices.forEach(inv => {
+                html += `<tr><td style="font-weight:bold;">${inv.outlet}</td><td align="center" style="font-weight:bold;">TGL</td><td align="center" style="font-weight:bold;">QTY</td><td align="center" style="font-weight:bold;">SAT</td><td align="center" style="font-weight:bold;">HARGA</td><td align="center" style="font-weight:bold;">PPN</td><td align="center" style="font-weight:bold;">NETTO</td><td align="center" style="font-weight:bold;">/DUS</td><td align="center" style="font-weight:bold;">/1.11</td><td></td></tr>`;
+                inv.items.forEach((item, index) => {
+                    let dus = item.netto / item.qtyTotal, per111 = dus / 1.11, harga = item.qtyTotal * per111, ppn = harga * 0.11;
+                    let printNota = (index === inv.items.length - 1) ? inv.notaNo : "";
+                    html += `<tr><td>${item.name}</td><td align="center">${inv.tgl}</td><td align="right">${item.qtyTotal}</td><td align="center">${item.sat}</td><td align="right">${fmt(harga)}</td><td align="right">${fmt(ppn)}</td><td align="right" style="font-weight:bold;">${fmt(item.netto)}</td><td align="right">${fmt(dus)}</td><td align="right">${fmt(per111)}</td><td align="center" style="font-weight:bold;">${printNota}</td></tr>`;
+                });
+                html += `<tr><td colspan="6"></td><td align="right" style="font-weight:bold; border: 2px solid black;">${fmt(inv.totalNetto)}</td><td colspan="3"></td></tr>`;
+                html += `<tr><td colspan="10" style="border:none; height:15px;"></td></tr>`;
+            });
+            html += `</table>`;
+            const blob = new Blob([html], { type: 'text/html' });
+            const data = [new ClipboardItem({ 'text/html': blob })];
+            navigator.clipboard.write(data).then(() => showPopup('Tersalin!', 'Gunakan <strong>Paste</strong> di Excel. Format rapi & Bold.'));
+        }
+
+        function exportToExcel() {
+            if (masterInvoices.length === 0) return showPopup('Peringatan', 'Antrean kosong!', false);
+            const wb = XLSX.utils.book_new();
+            const ws_data = [];
+            const boldStyle = { font: { bold: true } };
+            const customFormat = '_(* #,##0_);_(* (#,##0);_(* "-"??_);_(@_)';
+
+            masterInvoices.forEach(inv => {
+                ws_data.push([
+                    { v: inv.outlet, s: boldStyle },
+                    { v: "TGL", s: boldStyle }, { v: "QTY", s: boldStyle }, { v: "SAT", s: boldStyle }, { v: "HARGA", s: boldStyle }, { v: "PPN", s: boldStyle }, { v: "NETTO", s: boldStyle }, { v: "/DUS", s: boldStyle }, { v: "/1.11", s: boldStyle }, ""
+                ]);
+                let firstDataRow = ws_data.length + 1;
+                inv.items.forEach((item, index) => {
+                    let rData = ws_data.length + 1;
+                    let printNota = (index === inv.items.length - 1) ? inv.notaNo : "";
+                    ws_data.push([
+                        item.name, inv.tgl, item.qtyTotal, item.sat, 
+                        { t: 'n', f: `C${rData}*I${rData}`, z: customFormat }, 
+                        { t: 'n', f: `E${rData}*11/100`, z: customFormat }, 
+                        { v: item.netto, t: 'n', z: customFormat, s: { font: { bold: true } } }, 
+                        { t: 'n', f: `G${rData}/C${rData}`, z: customFormat }, 
+                        { t: 'n', f: `H${rData}/1.11`, z: customFormat }, 
+                        { v: printNota, s: { font: { bold: true }, alignment: { horizontal: "center" } } }
+                    ]);
+                });
+                let lastDataRow = ws_data.length;
+                ws_data.push(["", "", "", "", "", "", { t: 'n', f: `SUM(G${firstDataRow}:G${lastDataRow})`, z: customFormat, s: { font: { bold: true } } }, "", "", ""]);
+                ws_data.push([]); 
+            });
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            ws['!cols'] = [{wch: 45}, {wch: 12}, {wch: 8}, {wch: 8}, {wch: 16}, {wch: 16}, {wch: 18}, {wch: 14}, {wch: 14}, {wch: 25}];
+            XLSX.utils.book_append_sheet(wb, ws, "Faktur_Pajak");
+            XLSX.writeFile(wb, `Faktur_V16_Precision.xlsx`);
+        }
+    </script>
+</body>
+</html>

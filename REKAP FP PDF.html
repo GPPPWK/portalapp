@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ekstraktor Faktur Pajak PDF</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #334155; }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .modal-overlay { transition: opacity 0.2s ease-in-out; }
+        .modal-content { transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out; }
+    </style>
+</head>
+<body class="antialiased min-h-screen">
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <div id="headerWrapper" class="fixed top-4 left-0 right-0 z-50 flex justify-center px-4 transition-all duration-300 ease-in-out">
+        <header id="mainHeader" class="bg-white/90 backdrop-blur-md shadow-lg shadow-blue-900/5 border border-gray-200 rounded-full w-full max-w-4xl h-16 flex items-center justify-between px-6 transition-all duration-300 ease-in-out">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white w-9 h-9 flex items-center justify-center rounded-xl shadow-sm">
+                    <i class="fa-solid fa-file-pdf text-sm"></i>
+                </div>
+                <h1 class="font-bold text-lg tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-700">PDF Extractor</h1>
+            </div>
+            <div class="ml-auto flex items-center gap-3">
+                <span class="text-xs font-semibold bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full border border-blue-100 shadow-sm">
+                    <i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Auto Parser
+                </span>
+            </div>
+        </header>
+    </div>
+
+    <div id="customModal" class="fixed inset-0 z-[100] hidden flex items-center justify-center bg-slate-900/50 backdrop-blur-sm modal-overlay" onclick="if(event.target === this) closeModal()">
+        <div class="bg-white rounded-3xl shadow-2xl p-6 max-w-sm w-full mx-4 transform scale-95 opacity-0 modal-content border border-blue-50" id="modalContent">
+            <div class="text-center">
+                <div id="modalIcon" class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4 text-green-600 shadow-inner">
+                    <i class="fa-solid fa-check text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-extrabold text-slate-800 mb-1" id="modalTitle">Berhasil!</h3>
+                <div class="text-sm text-slate-500 mb-6 font-medium" id="modalMessage">Pesan ada di sini.</div>
+                <button onclick="closeModal()" class="w-full justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-sm font-bold text-white hover:shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5 transition-all">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <main class="max-w-5xl mx-auto px-4 sm:px-6 pt-28 pb-12 relative z-10 space-y-6">
+        
+        <div class="px-3">
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">Ekstraksi Dokumen Faktur Pajak</h2>
+            <p class="text-sm sm:text-base text-slate-500 mt-2 font-medium max-w-2xl">Upload banyak file PDF sekaligus. Sistem akan otomatis merekap Nama Pembeli, NPWP, No. Faktur, dan Multi-Referensi ke dalam satu tabel rapi.</p>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-1.5 max-w-2xl mx-auto">
+            <div class="border-2 border-dashed border-blue-200 rounded-2xl p-6 sm:p-10 text-center bg-blue-50/30 hover:bg-blue-50/80 transition-colors cursor-pointer relative overflow-hidden group" onclick="document.getElementById('fileInput').click()">
+                
+                <div id="loadingOverlay" class="absolute inset-0 bg-white/95 backdrop-blur-sm z-10 hidden flex-col items-center justify-center rounded-2xl">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-blue-600 mb-3"></i>
+                    <p class="text-sm font-bold text-slate-800" id="loadingText">Membaca PDF...</p>
+                    <p class="text-[10px] font-semibold text-blue-500 mt-1 bg-blue-50 px-2 py-0.5 rounded-full" id="loadingCount">0 / 0 selesai</p>
+                    <div class="w-48 h-1.5 bg-slate-100 rounded-full mt-4 overflow-hidden shadow-inner">
+                        <div id="progressBar" class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <div class="w-14 h-14 bg-white border border-blue-100 rounded-full shadow-md flex items-center justify-center mx-auto mb-4 text-blue-500 group-hover:scale-110 transition-transform duration-300">
+                    <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-800 mb-1 group-hover:text-blue-700 transition-colors">Klik atau seret file PDF ke sini</h3>
+                <p class="text-xs text-slate-400 mb-5 font-medium">Mendukung upload puluhan dokumen sekaligus.</p>
+                
+                <input type="file" id="fileInput" accept=".pdf" multiple class="hidden" onchange="prosesBanyakPDF(this)">
+                
+                <div class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 shadow-md shadow-blue-200 px-5 py-2.5 rounded-xl text-xs font-bold text-white group-hover:shadow-lg group-hover:-translate-y-0.5 transition-all">
+                    <i class="fa-solid fa-folder-open"></i> Pilih File Dokumen
+                </div>
+            </div>
+        </div>
+
+        <div id="hasilContainer" class="hidden bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+            <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white">
+                <div>
+                    <h3 class="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-table-list text-blue-500"></i> Tabel Rekapan Data
+                    </h3>
+                    <p class="text-sm text-slate-500 mt-1 font-medium" id="teksRingkasan">Total 0 dokumen diekstrak.</p>
+                </div>
+                <button onclick="downloadExcel()" class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold py-2.5 px-5 rounded-xl hover:shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel"></i> Export ke Excel
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left whitespace-nowrap">
+                    <thead class="bg-blue-50/50 text-blue-800 text-xs font-bold border-b border-blue-100 uppercase tracking-wider">
+                        <tr>
+                            <th class="px-6 py-4 w-12 text-center">#</th>
+                            <th class="px-6 py-4">Nama Pembeli</th>
+                            <th class="px-6 py-4">NPWP</th>
+                            <th class="px-6 py-4">No. Faktur Pajak</th>
+                            <th class="px-6 py-4">No. Referensi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyTabelHasil" class="text-sm text-slate-700 divide-y divide-slate-100">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="w-full bg-white border-t border-gray-200 py-6 mt-auto">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p class="text-xs text-gray-500 font-medium">
+                &copy; 2026 Aditya Bagas Corp. Hak Cipta Dilindungi.
+            </p>
+            <p class="text-xs text-gray-400 flex items-center gap-1">
+                Dibuat untuk efisiensi kerja <i class="fa-solid fa-bolt text-yellow-500 ml-1"></i>
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        let hasilEkstraksiFinal = [];
+
+        // --- ANIMASI HEADER SCROLL ---
+        window.addEventListener('scroll', function() {
+            const wrapper = document.getElementById('headerWrapper');
+            const header = document.getElementById('mainHeader');
+            
+            // Jika di-scroll lebih dari 20px
+            if (window.scrollY > 20) {
+                // Berubah jadi Full Width (Menempel di atas)
+                wrapper.classList.replace('top-4', 'top-0');
+                wrapper.classList.replace('px-4', 'px-0');
+                
+                header.classList.remove('max-w-4xl', 'rounded-full', 'shadow-lg', 'shadow-blue-900/5', 'border');
+                header.classList.add('max-w-full', 'rounded-none', 'shadow-sm', 'border-b');
+            } else {
+                // Kembali jadi "Pil" melayang
+                wrapper.classList.replace('top-0', 'top-4');
+                wrapper.classList.replace('px-0', 'px-4');
+                
+                header.classList.add('max-w-4xl', 'rounded-full', 'shadow-lg', 'shadow-blue-900/5', 'border');
+                header.classList.remove('max-w-full', 'rounded-none', 'shadow-sm', 'border-b');
+            }
+        });
+
+        // --- CUSTOM MODAL POP-UP ---
+        function showModal(title, message, isError = false) {
+            const modal = document.getElementById('customModal');
+            const modalContent = document.getElementById('modalContent');
+            const icon = document.getElementById('modalIcon');
+            
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerHTML = message;
+            
+            if (isError) {
+                icon.className = "mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4 text-red-600 shadow-inner";
+                icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-2xl"></i>';
+            } else {
+                icon.className = "mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4 text-green-600 shadow-inner";
+                icon.innerHTML = '<i class="fa-solid fa-check text-2xl"></i>';
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('customModal');
+            const modalContent = document.getElementById('modalContent');
+            
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200); 
+        }
+
+        // --- ENGINE EKSTRAKSI TEKS DARI PDF ---
+        async function ekstrakTeksDariPDF(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const typedarray = new Uint8Array(e.target.result);
+                        const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+                        
+                        let teksPenuh = "";
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const textContent = await page.getTextContent();
+                            const teksHalaman = textContent.items.map(item => item.str.trim()).filter(Boolean).join(' ');
+                            teksPenuh += teksHalaman + " ";
+                        }
+                        resolve(teksPenuh);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // --- ENGINE PENCARIAN POLA (REGEX) ---
+        function parseDataFaktur(teksMentah) {
+            let hasil = { nama: "-", npwp: "-", noFaktur: "-", referensi: "-" };
+            
+            // 1. Cari No Faktur Pajak
+            const matchFaktur = teksMentah.match(/(?:Kode dan Nomor Seri Faktur Pajak|Nomor Seri Faktur Pajak)\s*:\s*([\d\.\-]+)/i) || 
+                                teksMentah.match(/(\d{3}[\.\-]?\d{3}[\.\-]?\d{2}[\.\-]?\d{8})/);
+            if (matchFaktur) {
+                hasil.noFaktur = matchFaktur[1].replace(/[^0-9]/g, ''); 
+            }
+
+            // 2. Isolasikan bagian "Pembeli" 
+            const keywordPembeli = "Pembeli Barang Kena Pajak";
+            const idxPembeli = teksMentah.toLowerCase().indexOf(keywordPembeli.toLowerCase());
+            
+            if (idxPembeli !== -1) {
+                const teksPembeli = teksMentah.substring(idxPembeli, idxPembeli + 800); 
+                
+                // Cari Nama Pembeli
+                const matchNama = teksPembeli.match(/Nama\s*:\s*(.*?)(?=\s*Alamat|\s*NPWP)/i);
+                if (matchNama) {
+                    hasil.nama = matchNama[1].trim();
+                }
+
+                // Cari NPWP Pembeli
+                const matchNPWP = teksPembeli.match(/NPWP\s*:\s*([\d\.\-]+)/i);
+                if (matchNPWP) {
+                    hasil.npwp = matchNPWP[1].replace(/[^0-9]/g, '');
+                }
+            }
+
+            // 3. Cari Referensi 
+            const matchRef = teksMentah.match(/Referensi\s*:\s*([A-Za-z0-9\-\_,\/\s]+)/i);
+            if (matchRef) {
+                let textRef = matchRef[1].trim();
+                textRef = textRef.split(/\s{3,}/)[0]; 
+                textRef = textRef.split(/(Jakarta|Bandung|Surabaya|Semarang|Purwokerto|Cilacap|Banyumas|Tgl|Tanggal|Pajak|Sesuai|Dibuat|Total|Nama|No\.)/i)[0];
+                
+                hasil.referensi = textRef.trim().replace(/\s*,\s*/g, ', '); 
+                
+                if (hasil.referensi.length === 0 || hasil.referensi.toLowerCase() === "referensi") {
+                    hasil.referensi = "-";
+                }
+            }
+
+            return hasil;
+        }
+
+        // --- KONTROLER UPLOAD & PROSES ---
+        async function prosesBanyakPDF(input) {
+            const files = input.files;
+            const jumlahFile = files.length;
+            
+            if (jumlahFile === 0) return;
+
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingCount = document.getElementById('loadingCount');
+            const progressBar = document.getElementById('progressBar');
+            loadingOverlay.classList.remove('hidden');
+            loadingOverlay.classList.add('flex');
+            
+            hasilEkstraksiFinal = [];
+            
+            for (let i = 0; i < jumlahFile; i++) {
+                const file = files[i];
+                
+                loadingCount.innerText = `${i + 1} / ${jumlahFile} dokumen`;
+                const persentase = ((i + 1) / jumlahFile) * 100;
+                progressBar.style.width = `${persentase}%`;
+
+                try {
+                    const teksPDF = await ekstrakTeksDariPDF(file);
+                    const dataTerurai = parseDataFaktur(teksPDF);
+                    
+                    hasilEkstraksiFinal.push({
+                        fileName: file.name,
+                        ...dataTerurai
+                    });
+                } catch (error) {
+                    console.error("Gagal membaca file:", file.name, error);
+                    hasilEkstraksiFinal.push({
+                        fileName: file.name,
+                        nama: "Gagal Dibaca",
+                        npwp: "-",
+                        noFaktur: "-",
+                        referensi: "-"
+                    });
+                }
+            }
+
+            setTimeout(() => {
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('flex');
+                
+                tampilkanKeTabel();
+                showModal("Ekstraksi Berhasil", `Selesai mengekstrak data dari <b class="text-blue-600">${jumlahFile}</b> file PDF secara otomatis.`);
+                input.value = ""; 
+            }, 400);
+        }
+
+        // --- MERENDER HASIL KE TABEL ---
+        function tampilkanKeTabel() {
+            const tbody = document.getElementById('bodyTabelHasil');
+            tbody.innerHTML = "";
+
+            document.getElementById('teksRingkasan').innerHTML = `Terdapat <b class="text-blue-600">${hasilEkstraksiFinal.length}</b> dokumen yang berhasil direkap.`;
+
+            hasilEkstraksiFinal.forEach((data, index) => {
+                
+                // Pisahkan Multi-referensi menjadi Badge Biru
+                let htmlReferensi = "";
+                if (data.referensi !== "-" && data.referensi !== "") {
+                    const listRef = data.referensi.split(',');
+                    listRef.forEach(ref => {
+                        const refBersih = ref.trim();
+                        if(refBersih) {
+                            htmlReferensi += `<span class="inline-block bg-blue-50 border border-blue-100 text-blue-700 px-2.5 py-1 rounded-md text-[11px] font-bold mr-1.5 mb-1.5 shadow-sm"><i class="fa-solid fa-hashtag text-[10px] opacity-40 mr-1"></i>${refBersih}</span>`;
+                        }
+                    });
+                } else {
+                    htmlReferensi = `<span class="text-slate-400 italic text-xs">- Tidak ada -</span>`;
+                }
+
+                const isError = data.nama === "Gagal Dibaca";
+                let rowClass = "hover:bg-blue-50/40 transition-colors";
+                if(isError) rowClass = "bg-red-50";
+
+                const tr = document.createElement("tr");
+                tr.className = rowClass;
+                tr.innerHTML = `
+                    <td class="px-6 py-5 text-center text-xs font-bold text-slate-400">${index + 1}</td>
+                    <td class="px-6 py-5">
+                        <div class="font-bold text-slate-900">${data.nama}</div>
+                        <div class="text-[10px] text-slate-400 mt-1 truncate max-w-[250px]" title="${data.fileName}"><i class="fa-solid fa-file-pdf mr-1"></i> ${data.fileName}</div>
+                    </td>
+                    <td class="px-6 py-5 font-mono text-sm font-semibold text-slate-600">${data.npwp}</td>
+                    <td class="px-6 py-5 font-mono text-sm font-extrabold text-blue-600">${data.noFaktur}</td>
+                    <td class="px-6 py-5 whitespace-normal max-w-[280px] leading-tight">${htmlReferensi}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const hasilContainer = document.getElementById('hasilContainer');
+            hasilContainer.style.display = "block";
+        }
+
+        // --- FUNGSI EXPORT KE EXCELJS ---
+        async function downloadExcel() {
+            if (hasilEkstraksiFinal.length === 0) return;
+
+            try {
+                const workbook = new ExcelJS.Workbook();
+                const sheet = workbook.addWorksheet("Rekapan Faktur PDF");
+
+                sheet.columns = [
+                    { header: 'No', key: 'no', width: 5 },
+                    { header: 'Nama Pembeli', key: 'nama', width: 40 },
+                    { header: 'NPWP', key: 'npwp', width: 25 },
+                    { header: 'Nomor Faktur Pajak', key: 'faktur', width: 25 },
+                    { header: 'Nomor Referensi', key: 'referensi', width: 35 },
+                    { header: 'Nama File Asli', key: 'file', width: 30 }
+                ];
+
+                const headerRow = sheet.getRow(1);
+                headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                // Header biru tua gradien ala excel
+                headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } }; 
+                headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+                hasilEkstraksiFinal.forEach((data, idx) => {
+                    sheet.addRow({
+                        no: idx + 1,
+                        nama: data.nama,
+                        npwp: data.npwp,
+                        faktur: data.noFaktur,
+                        referensi: data.referensi, 
+                        file: data.fileName
+                    });
+                });
+
+                const buffer = await workbook.xlsx.writeBuffer();
+                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "Rekapan_Ekstrak_Faktur_Pajak.xlsx";
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+            } catch (error) {
+                console.error("Gagal export:", error);
+                showModal("Error Export", "Gagal membuat file Excel.", true);
+            }
+        }
+    </script>
+</body>
+</html>

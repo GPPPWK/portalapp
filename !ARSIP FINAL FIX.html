@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Sortir Arsip Nota</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        /* --- VARIABEL WARNA MODERN --- */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #f6f8fb 0%, #e5ebf4 100%);
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --primary: #000;          
+            --primary-hover: #333;
+            --accent-blue: #0070f3;   
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --wa-color: #25D366;      /* Hijau WhatsApp */
+            --wa-hover: #128C7E;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* --- KOTAK UTAMA (CONTAINER) --- */
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px -15px rgba(0,0,0,0.05), 0 0 0 1px rgba(0,0,0,0.03);
+        }
+
+        /* --- JUDUL GRADASI --- */
+        h2 {
+            text-align: center;
+            font-weight: 800;
+            font-size: 32px;
+            margin-top: 0;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #0070f3 0%, #f81ce5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        
+        /* --- INPUT & PENCARIAN --- */
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 16px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: 'Inter', sans-serif;
+            background: #f9fafb;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(0, 112, 243, 0.15);
+        }
+        
+        /* --- EFEK GLASSMORPHISM PADA DROPDOWN --- */
+        .sugesti-box {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 120px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 12px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            display: none;
+            padding: 8px;
+        }
+
+        .sugesti-box::-webkit-scrollbar { width: 6px; }
+        .sugesti-box::-webkit-scrollbar-track { background: transparent; }
+        .sugesti-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .sugesti-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            color: #374151;
+        }
+
+        .sugesti-item:hover, .sugesti-item.aktif {
+            background-color: #f1f5f9;
+            color: var(--accent-blue);
+            transform: translateX(4px);
+        }
+
+        /* --- TOMBOL --- */
+        button {
+            padding: 16px 28px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px -2px rgba(0,0,0,0.15);
+        }
+
+        button:active { transform: translateY(0); }
+
+        /* WADAH TOMBOL AKSI BAWAH */
+        .action-buttons {
+            display: flex;
+            gap: 16px;
+            margin-top: 30px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+            padding: 18px;
+            border-radius: 14px;
+            font-size: 16px;
+        }
+
+        .print-btn {
+            background: linear-gradient(135deg, #0070f3 0%, #0051b3 100%);
+        }
+        .print-btn:hover { background: linear-gradient(135deg, #0051b3 0%, #003e8a 100%); }
+
+        .wa-btn {
+            background: linear-gradient(135deg, var(--wa-color) 0%, var(--wa-hover) 100%);
+        }
+        .wa-btn:hover { background: linear-gradient(135deg, var(--wa-hover) 0%, #075E54 100%); }
+
+        /* --- KARTU HASIL SORTIR (CARD) --- */
+        .header-hasil {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px dashed var(--border-color);
+        }
+
+        .header-hasil h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #334155;
+        }
+
+        .badge-total {
+            background: var(--accent-blue);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 99px;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 2px 4px rgba(0,112,243,0.3);
+        }
+
+        .rute-group {
+            margin-top: 24px;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: transform 0.2s;
+            break-inside: avoid;
+        }
+        
+        .rute-group:hover { border-color: #cbd5e1; }
+
+        .rute-header {
+            background: #f8fafc;
+            color: #0f172a;
+            padding: 16px 20px;
+            font-size: 15px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .rute-header .badge {
+            background: #e2e8f0;
+            color: #475569;
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .nota-list { list-style: none; padding: 0; margin: 0; }
+
+        .nota-list li {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 500;
+            color: #334155;
+        }
+        
+        .nota-list li:hover { background: #f8fafc; }
+        .nota-list li:last-child { border-bottom: none; }
+
+        .delete-btn {
+            background-color: transparent;
+            color: var(--danger);
+            padding: 6px 12px;
+            font-size: 13px;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            box-shadow: none;
+        }
+
+        .delete-btn:hover {
+            background-color: var(--danger);
+            border-color: var(--danger);
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+            transform: translateY(0);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 20px;
+            font-weight: 500;
+            background: #f9fafb;
+            border-radius: 16px;
+            border: 1px dashed #cbd5e1;
+        }
+
+        /* --- TOAST NOTIFICATION (DI TENGAH LAYAR) --- */
+        .toast-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 9999;
+            pointer-events: none; 
+        }
+
+        .toast {
+            padding: 18px 30px;
+            border-radius: 14px;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2), 0 10px 10px -5px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .toast.success { background-color: var(--success); }
+        .toast.warning { background-color: var(--warning); color: #fff; }
+
+        @keyframes popIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; transform: scale(0.8); }
+        }
+        
+        /* --- MODE DOWNLOAD PDF --- */
+        .pdf-mode .delete-btn { display: none !important; }
+        .pdf-mode .action-buttons { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div class="input-wrapper">
+        <input type="text" id="inputOutlet" placeholder="Ketik nama outlet (misal: SPB)..." autocomplete="off">
+        <div id="kotakSugesti" class="sugesti-box"></div>
+        <button onclick="catatNotaManual()">Catat</button>
+    </div>
+
+    <div id="areaPrint">
+        <h2>Rekapan Arsip Nota</h2>
+        <div id="hasilSortir"></div>
+    </div>
+
+    <div class="action-buttons">
+        <button class="print-btn" onclick="downloadPDF()">Download PDF</button>
+        <button class="wa-btn" onclick="kirimKeWA()">Kirim ke WhatsApp</button>
+    </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script>
+    const masterData = [
+        { nama: "TARSONO MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "ARIS SUMBER LUMAS MERSI PWT (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "GUNUNG SLAMET RAYA TELUK (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "SPBU 44.531.10 SOKARAJA (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "SPBU 44.531.17 KARANGNANAS (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "TOP JAYA MOTOR PWT TIMUR (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "NANDA OB SOKARAJA (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "PERWIRA MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "DD AUTO SERVICE (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "SATRIA JAYA MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "PT HARAPAN JAYA ANUGERAH (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "JAYA SENTOSA OTOSARANA PWT KIDUL (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "UNEDO MOTOR PWT SEL (B)", kategori: "Sales Banyumas", rute: "Rute 6" },
+        { nama: "ARENA MOTOR PWT SELATAN (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "MITRA KAKUNG PWT SEL (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "NEW TJM PWT UTARA (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "TEGUH MOTOR PWT SEL (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "AGUNG AKINDO PWT (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "KARUNIA MOTOR PWT KULON (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "LESTARI MOTOR SUMINGKIR (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "PITCAR (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "SINAR SAKTI MOTOR", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "BERLIAN MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "MEKAR JAYA MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "NEW PANDA (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "SPBU 44.531.33 PURWANEGARA (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "PT DWI TUNGGAL PUTRA PERTAMA PWT (B)", kategori: "Sales Banyumas", rute: "Rute 5" },
+        { nama: "SPBU 44.531.02 SUMPIUH (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "SAHABAT MOTOR SUMPIUH (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "SPBU 44.531.28 KEDUNGPRING BMS (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "WIJAHAN MOTOR BMS (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "SUGENG MOTOR TAMBAK BMS (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "MUKTI SADEWO TAMBAK BMS (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "AMIN MOTOR BUNTU BMS (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "ENDURO EXPRESS ERIK MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "DNS MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "SPBU 44.531.25 TAMBAK (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "GODEG MOTOR SUMPIUH (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "NADA VARIASI SUMPIUH (B)", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "ASIYAH MOTOR", kategori: "Sales Banyumas", rute: "Rute 4" },
+        { nama: "ORBIT MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "LANGGENG JAYA MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "SEKAWAN MOTOR KALIBAGOR BMS (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "ANUGRAH MOTOR KEJAWAR BMS (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "LARIS MOTOR SOKARAJA (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "KARUNIA BANYUMAS (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "MUSTIKA MOTOR PWT (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "MILYONO MOTOR KALIBAGOR BMS (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "SETYA JAYA MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "JAYA MOTOR SOKARAJA", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "SPBU 44.531.36", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "SPBU 44.531.22 BMS (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "KURNIA MOTOR SOKARAJA BMS (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "LANGGENG MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "MELIN MAKMUR (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "TOTAL AUTO SERVICE (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "SATYA JAYA MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 3" },
+        { nama: "LANGGENG MULYO (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "BERKAH JAYA MOBIL KEBASEN (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "SEMESTA JAYA MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "ER JAYA KALIBAGOR BMS (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "SPBU 44.531.29 RAWALO (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "SUGENG MOTOR KEDUNGRANDU (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "SPBU 44.531.34 (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "SPBU 44.531.05 WANGON (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "SAYOK MOTOR PATIKRAJA (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "BENGKEL TOSENG", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "SPBU 44.531.20 JAMBU WANGON (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "SPBU 44.531.11 MARGASANA (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "SPBU 44.531.24 TINGGAR JAYA (B)", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "SHM SUMPIUH", kategori: "Sales Banyumas", rute: "Rute 2" },
+        { nama: "BOB JAYA (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "MARDI TANI (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "TERMINAL MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "PURWOKERTO AUTO SERVICE (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "ARUM SARI AUTO CARE (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "KONDANG MOTOR (BARU MOTOR) PWT SEL (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "NEW SAMIJAYA PWT SEL (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "RAKHA MOTOR KR.KLESEM PWT (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "SUBUR BAN PWT SEL (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "SPBU 44.531.07 TANJUNG PWT (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "SENTRAL MOTOR PWT TIMUR (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "SPBU 44.531.09 CILONGOK (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "PALAPA MOTOR PWT SEL (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "SPBU 44.531.01 AJIBARANG (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "TRESNO MOTOR PWT (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "DJOKO MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "PANDA KARANGLEWAS (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "KHARISMA MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 1" },
+        { nama: "ALFIN CAR SERVIS SUMBANG BMS (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "ALFAMAS WANGON (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "PISTON MOTOR WANGON (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "HARMONI BAN CILONGOK (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "HIDUP BARU MOTOR PWT (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "BENGKEL MOBIL SR CILONGOK (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "MAHENDRA MOBIL KEJAWAR BMS (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "BENGKEL RAHMAT WANGON (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "SUKSES MOTOR KEMBARAN (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "INTAN SPOORING WANGON (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "JAYA ABADI JATILAWANG (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "NUSANTARA MOTOR PWT (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "PEMALANG JAYA PWT SEL (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "SPBU 44.531.18 LEGOR BMS (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "TIRTO BANTOLO WANGON (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "TORO MOTOR KEMBARAN PWT (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "UDI MOTOR SUMBANG (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "SEMI BARU MOTOR WANGON (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "BERKAH MAKMUR KEDUNGUTER BMS (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "BENGKEL LSM KR.LEWAS (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "JAYA MOTOR PURWOKERTO (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "RAHMAT MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "MERDEKA MOTOR WANGON (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "NEW AGUNG KRANJI PWT (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "RAFA JAYA MANDIRI KR.LEWAS PWT (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "MR MOTOR CILONGOK (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "SW RAYA GRENDENG PWT (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "AM JAYA MOTOR PATIKRAJA (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "SOKARAJA MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "TOHID MOTOR PETARANGAN (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "MAKMUR JAYA SOKARAJA (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "ARIYANTO MOTOR JATILAWANG (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "FADILA MOTOR JATILAWANG (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "DJUN GONDRONG KR.LEWAS (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "BAYU MOTOR KR.LEWAS (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "AJI MOTOR KR.LEWAS (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "MATA AIR MOTOR BATURADEN (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "SETIA BUDI MOTOR PWT (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "ARWANA MOTOR KR.RAU BMS (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "TRI MANDIRI MOTOR KEJAWAR BMS (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "BJB MOTOR PWT (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "ANDROMEDA PUTRA MOTOR PWT (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "AJI DIESEL AJIBARANG (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "ANUGRAH JAYA MOTOR PWT (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "TARUNA JAYA MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "Fixcar mobil (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "MALIHA ONE STOP", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "MANDIRI DIESEL", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "HAKONE MOTOR", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "OPTIMAX MOTOWORLD (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "BENGKEL 88 (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "GADING MOTOR (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "OKE JAYA (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        { nama: "BINTANG JAYA MOTOR PATIKRAJA (B)", kategori: "Sales Banyumas", rute: "Rute 0" },
+        
+        // --- TAMBAHAN DATA SUPERVISOR BABAWOPA ---
+        { nama: "SAMA JAYA PBG (B)", kategori: "Supervisor Babawopa", rute: "Rute 6" },
+        { nama: "CAHAYA MOTOR BOBOTSARI PBG (B)", kategori: "Supervisor Babawopa", rute: "Rute 6" },
+        { nama: "SURYA MOTOR PURBALINGGA (B)", kategori: "Supervisor Babawopa", rute: "Rute 6" },
+        { nama: "PURNAMA MOTOR BOBOTSARI (B)", kategori: "Supervisor Babawopa", rute: "Rute 6" },
+        { nama: "MEKAR JAYA SENTOSA PBG (B)", kategori: "Supervisor Babawopa", rute: "Rute 6" },
+        { nama: "SUKSES MOTOR PWT (B)", kategori: "Supervisor Babawopa", rute: "Rute 6" },
+        { nama: "BINTANG MOTOR WSB (B)", kategori: "Supervisor Babawopa", rute: "Rute 5" },
+        { nama: "CENTRAL OLI (B)", kategori: "Supervisor Babawopa", rute: "Rute 4" },
+        { nama: "BINTANG TEKNIK SUMPIUH (B)", kategori: "Supervisor Babawopa", rute: "Rute 2" },
+        { nama: "NEW GUNAWAN MOTOR PBG (B)", kategori: "Supervisor Babawopa", rute: "Rute 2" },
+        { nama: "GUNAWAN MOTOR PBG (B)", kategori: "Supervisor Babawopa", rute: "Rute 2" },
+        { nama: "BINTANG PUTRA AJIBARANG (B)", kategori: "Supervisor Babawopa", rute: "Rute 1" },
+        { nama: "SAKURA MOTOR (CV SAKURA BARU) PWT (B)", kategori: "Supervisor Babawopa", rute: "Rute 1" },
+        { nama: "SEJAHTERA MOTOR (CV MAKMUR SEJAHTERA) PWT (B)", kategori: "Supervisor Babawopa", rute: "Rute 1" },
+        { nama: "GARUDA MOTOR WANGON BMS (B)", kategori: "Supervisor Babawopa", rute: "Rute 1" },
+        { nama: "KONDANG MAKMUR PWT TIMUR (B)", kategori: "Supervisor Babawopa", rute: "Rute 1" },
+        { nama: "ROMA MOTOR PWT(CV. PUTRA MANDIRI PERSADA) (B)", kategori: "Supervisor Babawopa", rute: "Rute 1" },
+        { nama: "SUMBER JAYA AJIBARANG (B)", kategori: "Supervisor Babawopa", rute: "Rute 1" },
+        { nama: "MUSLIHUDIN (MUS) BABAWOPA", kategori: "Supervisor Babawopa", rute: "Rute 0" },
+        { nama: "PASINDITO BAROKAH MANDIRI", kategori: "Supervisor Babawopa", rute: "Rute 0" },
+        { nama: "PO. CEBONG JAYA WSB (B)", kategori: "Supervisor Babawopa", rute: "Rute 0" },
+        { nama: "SURYA MEKAR PWT TIMUR (B)", kategori: "Supervisor Babawopa", rute: "Rute 0" },
+        { nama: "CAHAYA MOTOR AJIBARANG (B)", kategori: "Supervisor Babawopa", rute: "Rute 0" },
+        
+        // --- TAMBAHAN DATA SALES BANJARNEGARA PURBALINGGA ---
+        { nama: "ACHMADI MOTOR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 6" },
+        { nama: "MBAH DJO MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 6" },
+        { nama: "KHANIKA MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 6" },
+        { nama: "ENGGAL JAYA KUTABANJAR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 6" },
+        { nama: "ANYAR MOTOR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 6" },
+        { nama: "SAUDARA MOTOR KR.TENGAH BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 6" },
+        { nama: "MAJU MOTOR BANJARNEGARA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 6" },
+        { nama: "SURYA JAYA MOTOR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 6" },
+        { nama: "SPBU 44.534.03 BLAMBANGAN BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 6" },
+        { nama: "FELLIX MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 6" },
+        { nama: "LSP MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "DWI JAYA MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "SPBU 44.534.15 KLAMPOK BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "ASSYFA MOTOR 3 MANDIRAJA BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "MARGA JAYA MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "ALFA MOTOR KLAMPOK BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "SUMBER AGUNG MOTOR PBG (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "KARTA MOTOR SUSUKAN BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "CHN MOTOR SUSUKAN BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "SANTOSA MOTOR KLAMPOK BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "SPBU 44.534.12 SUSUKAN BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "ATENK BODY FARIASI (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "REJEKI JAYA MOTOR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "BENGKEL WONO MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "INDAH MOTOR KALIMANDI (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 5" },
+        { nama: "BANGUN MOTOR WANADADI BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "MANDIRI MOTOR WANADADI BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "BORNEO MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "SULTAN MOTORINDO (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "VINOS MOTOR PUNGGELAN BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "RIZKI MOTOR BANJARMANGU BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "PUTRA ABADI MOTOR PUNGGELAN BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "CAHAYA MOTOR PUNGGELAN BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "MANDIRI MOTOR LENGKONG (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "PASAMA MOTOR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "BAHTERA MOTOR BEDAGAS", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "BRILLIANT MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "CANDRA KENCANA MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "MANDIRI JAYA MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "SARI JAYA MOTOR PUNGGELAN BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 4" },
+        { nama: "RIZKI MOTOR PAGENTAN (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "MULIA JAYA TEKNIK", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "LESTARI MOTOR BANJARNEGARA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "SURYA MOTOR 2 (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "SPBU 45.534.13 KALIBENING BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "ILHAM MOTOR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "SPBU 44.534.06 KARANGKOBAR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "KHENDI MOTOR KARANGKOBAR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "SAMUDRA MOTOR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "BENGKEL SUYITNO KARANGKOBAR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "MAKMUR MOTOR KR.KOBAR", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "KURNIA MOTOR BATUR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "PRIMA SEJAHTERA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "SAHABAT KARANGKOBAR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "SURYA KARANGKOBAR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "EXSIST MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "LANCAR JAYA BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "BANAFSHA MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "RODA JAYA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "ZAKY MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "SURYA MOTOR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 3" },
+        { nama: "ATMAJAYA MOTOR RAKIT BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "JATI KUSUMA TEKNIK (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "RISKI MOTOR RAKIT BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "ZAENAL JAYA MOTOR RAKIT (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "BENGKEL 33 KERTAYASA BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "KURNIA MOTOR 2 MANDIRAJA BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "BUMI ASIH MOTOR MANDIRAJA BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "ALI POJOK MOTOR MANDIRAJA BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "DINO MOTOR RAKIT BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "UDIN MERIAH TEKNIK MANDIRAJA BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "KING MOTOR MANDIRAJA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "KARYA MANDIRI MOTOR GUMIWANG (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "RM MOTOR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "UTAMA JAYA", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "SUMBER BERKAT MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "SAHABAT MOTOR 2 (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "KELANA MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "A\\'EP MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 2" },
+        { nama: "SHAN MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "SPBU 44.534.14 PRIGI BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "KITONO BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "TRESNA MOTOR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "DIPA MOTOR SIGALUH BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "CANDRA MOTOR BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "KETAPANG MOTOR MADUKARA BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "SERAYU MOTOR RANDEGAN SIGALUH BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "RESTU MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "KARUNIA JAYA MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "BERKAH MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "MAJU JAYA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "ANUGERAH JAYA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "FIZA MOTOR (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 1" },
+        { nama: "BEDHIL MOTOR PRIGI SIGALUH BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 0" },
+        { nama: "SPBU 44.534.02 KLAMPOK BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 0" },
+        { nama: "NEW PURWO MOTOR PURWONEGORO BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 0" },
+        { nama: "BINTANG NUSANTARA MOTOR BAWANG BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 0" },
+        { nama: "YAJI MOTOR BAWANG BNA (B)", kategori: "Sales Banjarnegara Purbalingga", rute: "Rute 0" }, 
+
+        // --- TAMBAHAN DATA SALES INDUSTRI BARAT ---
+        { nama: "CV MITRA PESONA PLYWOOD (IC)", kategori: "Sales Industri Barat", rute: "Rute 6" },
+        { nama: "CV. SATRIA PUTRA SEJAHTERA (IC)", kategori: "Sales Industri Barat", rute: "Rute 6" },
+        { nama: "PT. MAJU LANCAR UTAMA (IC)", kategori: "Sales Industri Barat", rute: "Rute 6" },
+        { nama: "PE. BUDI DHARMA (IC)", kategori: "Sales Industri Barat", rute: "Rute 6" },
+        { nama: "BP WARTOYO (IC)", kategori: "Sales Industri Barat", rute: "Rute 6" },
+        { nama: "GANDA ASIH (IB)", kategori: "Sales Industri Barat", rute: "Rute 6" },
+        { nama: "CV ARDI PURNAMA JAYA (IC)", kategori: "Sales Industri Barat", rute: "Rute 6" },
+        { nama: "ADITYO TRANS (IC)", kategori: "Sales Industri Barat", rute: "Rute 6" },
+        { nama: "PT SUMBER IHTIAR PERKASA", kategori: "Sales Industri Barat", rute: "Rute 6" },
+        { nama: "CV HIU PERKASA ILHAMMI (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "ILHAM KAPAL (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT PERTAMINA MAINTENANCE DAN CONSTRUCTION (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "DWIJAYA SENTRA SARANA (C)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT SIDAKAYA SAPUTRO JAYA (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT. PUTRA TUNGGAL BERDIKARI TRITIH KULON (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT. CIPTO JEMBAR JAYA TRITIH LOR (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT RIYAN AGUNG ABADI (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT. TAWEKAL SAROFA (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT. PUTERA BAJA TUNGGAL (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "CV PAMUJI (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT SABA PRIMA (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "CV BERSAMA JAYA (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT ELSAMBA PUTRA (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT DARMA RAHAYU (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT GUNUNG JATI JAYA SAKTI ( IC )", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT BALAKOSA NATYA MINO SAROYO ( IC )", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT ENERGI SUKSES ABADI (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT. SAKTI KARYA NUSANTARATAMA SIDAKAYA (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT DUTA SAMUDERA KARYA ( IC )", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "PT. ARINDO INTI JAYA CLP (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "KAPAL ABADI JAYA (IC)", kategori: "Sales Industri Barat", rute: "Rute 5" },
+        { nama: "SUMBER BAJA KARANGLEWAS (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT. BATU REJEKI SEMESTA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT. VINOLI INTERNUSA INDAH (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT. EKA TIMUR RAYA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT. FAJAR UTAMA KARYA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT FIMBO ROMANTIS ABADI (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "CV JAYA KUSUMA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "CV MEGA BUANA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "CV KARYA PURABAYA CILONGOK (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT AMANAT JAYA TRANSPORT ( IB )", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT SATRIA KAYU INDUSTRI ( IC )", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT MEKAR GEMILANG SEMESTA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT KARUNIA TIRTO MULYO ( IB )", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT DUTA SARANA MUDA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "CV BERKAH JAYA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT SINAR RIAU PERKASA PRIMA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "CV TANI JAYA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "CV BANGUN BUMI SEJAHTERA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "PT MITRA ANDALAN BETON (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "CV. KARYA PURABAYA (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "CV RABIH ADITIYA SADAD (IB)", kategori: "Sales Industri Barat", rute: "Rute 4" },
+        { nama: "MELIN MAKMUR (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT GARUDA MITRA ABADI JAYA (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "YUNI RIZALDI ALAT BERAT (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "CV ENSI GROUP (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT. BANGKIT KARYA (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT. MITRA SEJAHTERA ARTHALESTARI (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "SEJATI BENGKEL(IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT PIRUSA JAYA TRANS (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT ARUD JAYA FARM MANDIRAJA (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "CV RISKY SAKTI TRANS MANDIRI (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "CV. RUKUN KARYA JAYA PRIMA (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT PUNDI INDOKAYU INDUSTRI (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "BP NURWAHYUDI", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT ARTA GRAHA INDOTAMA (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "SUPARNO ALAT BERAT (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT JADI KUAT BERSAMA ( IB )", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT BINTANG BARU MEGA RAYA (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT KANAYA RECYCLE INDONESIA (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT JASA KONTRUKSI BANJARNEGARA (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT BERKAH LESTARI TRANSPORT (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "CV ARIEXA MITRA JAYA (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PT. SATRIA BUANA PAMULA SAKTI (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "CV PUTRA SUGENG (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "PURBITO ALAT BERAT (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "CV KEJAWAR BANGKIT JAYAWOOD (IB)", kategori: "Sales Industri Barat", rute: "Rute 3" },
+        { nama: "CV MURIA AGUNG CAKRA PRATAMA (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "UD MEKAR JAYA (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "CV MAKMUR KARYA ABADI (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "DANTAMIX KBM (C)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "CV WIJAYA NIAGA BAKTI (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "TB BENANG MULYA (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "PT BERKAH RAHAYU INDONESIA (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "SARI BUANA KARANGANYAR (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "PABRIK BUSA (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "TB RIDLO BESI BETON", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "CV BUNTON PASIRI PRAKOSO (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "PT SERAYU SURYA SAMUDRA (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "CV SAHABAT TRANS (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "HAMAM ALAT BERAT (IB)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "CV GIAT ALAM SEJAHTERA ( IC )", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "CV SUBUR LANCAR SENTOSA ( IC )", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "CV ANUGERAH KARYA MANDIRI (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "UD JAYA ASLI PLAYWOOD (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "PT BERKAH CAHAYA ASLI (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "SUDIMIN ALAT BERAT (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "PT MULYO TRANS SAKONDA (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "MAHKOTA JAYA TRANS (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "PT. RAMA SEJAHTERA GOMBONG (IC)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "UD MUGI BAROKAH 2 (IB)", kategori: "Sales Industri Barat", rute: "Rute 2" },
+        { nama: "CV RAGIL JAYA (IB)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "CV NAGA LIAR ALAMINDO (IB)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "CV. ALAM JAYA MAKMUR (IC)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "PT. PANCA KARYA SENTOSA (IC)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "PT HEKSA MANDIRI BETON (IC)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "PT HARYA DEWA", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "PT GIBRAN JAYA PRIMA (IB)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "PO ASLI", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "CV INDAH SEJATI (IB)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "BUDIYANTO (IB)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "CV MAKMUR BATU GUNUNG (IB)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "PT BATU ALAM SELATAN (IB)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "PT BERKAH BUMI CILACAP ( IC )", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "CV JAYA PERSADA MANDIRI (IB)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "CV JATI LESTARI (IB)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "CV VAN DYDAR TYAS KUSUMA (IC)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "PT MUARA KAYU SENGON (IB)", kategori: "Sales Industri Barat", rute: "Rute 1" },
+        { nama: "PT SBPS (IB)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "UD. PADI MULYO (IB)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PO. PUTRA KEMBAR (IB)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT. AGUNG DARMA INTRA (IB)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT. KARYA ALAM ABADI (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "BP SUYATNO (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "CV. MANDIRI RIZKY RANGGA TEKNIK BETON (MRRT BETON) (IB)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "LESTARI MUDA (IB)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "CV RANDOAN (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "CV CAHAYA SAMUDRA (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT HENGYUE INDUSTRI ESBATU (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "BP. HANNY HANDOKO (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "CV. LISNA JAYA (IB)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "ST CAPITAL (IB)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT. PRATAMA MANDIRI MULYA (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "CV. KARYA BARU (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT. ARGO KENCANA TRANSINDO (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "CV. KONJAYA BERSAMA (IB)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "MONDE ALAT BERAT (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT. MELISTA KARYA CLP (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT.SARANA KARYA CEMERLANG UTAMA (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "BP. MUSTAKIM CLP (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT. TRI AGUNG JAYA ABADI (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT.RICH HARVEST HASIL TIMBER (IB)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT RAMA KEBUMEN (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "JEMPOL MULIA JAYA UTAMA KBM (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT. SARI GEDE:PO. PUTRA BANGSA (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PO.MERDEKA (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT. ANEKA BANGUN SARANA (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "CV ERSYNIAGATAMA (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT. SM-CYCLO INDONESIA (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "YSBS (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT MUKIR SELO PRATAMA (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "BP HANNY HANDOKO RIJADI (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "BP SUGENG (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT KUSUMA RAHAYU JAYA (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT. SUPRI JAYA ABADI (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT GUNUNG MAS PUTRA (IB)", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT NINDYA KARYA ( IC )", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT TND JAYA MANDIRI", kategori: "Sales Industri Barat", rute: "Rute 0" },
+        { nama: "PT ALBASIA CIPTA SEJAHTERA (IC)", kategori: "Sales Industri Barat", rute: "Rute 0" }, 
+
+        // --- TAMBAHAN DATA SALES INDUSTRI TENGAH ---
+        { nama: "DJONG JAVA SAPURAN (IB)", kategori: "Sales Industri Tengah", rute: "Rute 6" },
+        { nama: "SUMBER HARAPAN MOTOR PWT TIMUR (B)", kategori: "Sales Industri Tengah", rute: "Rute 5" },
+        { nama: "MALEBER MOTOR CIAMIS (B)", kategori: "Sales Industri Tengah", rute: "Rute 4" },
+        { nama: "BINTANG SEJAHTERA MOTOR CIAMIS (B)", kategori: "Sales Industri Tengah", rute: "Rute 4" },
+        { nama: "MERDEKA MOTOR CIAMIS (B)", kategori: "Sales Industri Tengah", rute: "Rute 4" },
+        { nama: "SUMBER BARU CIAMIS (B)", kategori: "Sales Industri Tengah", rute: "Rute 4" },
+        { nama: "SUMBER INDAH CIAMIS (B)", kategori: "Sales Industri Tengah", rute: "Rute 4" },
+        { nama: "MIRAH REJEKI BANJARPATROMAN (B)", kategori: "Sales Industri Tengah", rute: "Rute 4" },
+        { nama: "BUDHI GUNAWAN BNA (IB)", kategori: "Sales Industri Tengah", rute: "Rute 4" },
+        { nama: "LANGGANAN MOTOR CIAMIS (B)", kategori: "Sales Industri Tengah", rute: "Rute 4" },
+        { nama: "AGUSTIN ANGELA KALIBENDA BNA (IB)", kategori: "Sales Industri Tengah", rute: "Rute 3" },
+        { nama: "OTOKITS WONOSOBO (B)", kategori: "Sales Industri Tengah", rute: "Rute 3" },
+        { nama: "AP 07 (B)", kategori: "Sales Industri Tengah", rute: "Rute 3" },
+        { nama: "MUNCUL JAYA MOTOR BANJARSARI (B)", kategori: "Sales Industri Tengah", rute: "Rute 3" },
+        { nama: "OFFICE PURWOKERTO (B)", kategori: "Sales Kantor Babawopa", rute: "Rute 0" },
+        { nama: "KIKI MOTOR RM (B)", kategori: "Sales Industri Tengah", rute: "Rute 1" },
+        { nama: "SPBU 44.531.06 KARANGBAWANG (B)", kategori: "Sales Industri Tengah", rute: "Rute 1" },
+        { nama: "SPBU KALISALAK BREBES (B)", kategori: "Sales Industri Tengah", rute: "Rute 1" },
+        { nama: "CV INTI KARYA NIAGA TEGAL (B)", kategori: "Sales Industri Tengah", rute: "Rute 1" },
+        { nama: "OFFICE WONOSOBO (B)", kategori: "Sales Industri Tengah", rute: "Rute 0" },
+        { nama: "WARUNG SPBU KALIERANG (B)", kategori: "Sales Industri Tengah", rute: "Rute 1" },
+        { nama: "JALINAN MOTOR WSB (B)", kategori: "Sales Industri Tengah", rute: "Rute 1" },
+        { nama: "HARYANTO WSB (B)", kategori: "Sales Industri Tengah", rute: "Rute 1" },
+        { nama: "TRIPLE BESS WSB (B)", kategori: "Sales Industri Tengah", rute: "Rute 1" },
+        { nama: "TUNAS KARYA", kategori: "Sales Industri Tengah", rute: "Rute 1" },
+        { nama: "EKO BANYUMAS BABAWOPA (B)", kategori: "Sales Industri Tengah", rute: "Rute 0" },
+        { nama: "PAK WILY KARANGRAU BMS (B)", kategori: "Sales Industri Tengah", rute: "Rute 0" },
+        { nama: "DUTA MOTOR BUMIAYU (B)", kategori: "Sales Industri Tengah", rute: "Rute 0" },
+        { nama: "GIGIH PWT (B)", kategori: "Sales Industri Tengah", rute: "Rute 0" },
+        { nama: "ENDURO EXPRESS (NITROGEN) KR.BAWANG PWT (B)", kategori: "Sales Kantor Babawopa", rute: "Rute 0" },
+        { nama: "ENDURO EXPRESS KALIERANG (B)", kategori: "Sales Industri Tengah", rute: "Rute 0" },
+        { nama: "PT. MASAWAN ABADI SEJAHTERA", kategori: "Sales Industri Tengah", rute: "Rute 0" },
+        { nama: "DJAYA MOTOR", kategori: "Sales Industri Tengah", rute: "Rute 0" },
+        { nama: "MUDA MOTOR (B)", kategori: "Sales Industri Tengah", rute: "Rute 0" }, 
+
+        // --- TAMBAHAN DATA KANTOR BABAWOPA ---
+        { nama: "PT KUSUMA DEWI (IB)", kategori: "Kantor Babawopa", rute: "Rute 6" },
+        { nama: "BAPAK SUPARNO SOKARAJA (IB)", kategori: "Kantor Babawopa", rute: "Rute 6" },
+        { nama: "UD HIDUP BARU PWT SEL (B)", kategori: "Kantor Babawopa", rute: "Rute 6" },
+        { nama: "UD MARGO MULYO PWT UTARA (B)", kategori: "Kantor Babawopa", rute: "Rute 6" },
+        { nama: "SIGIT DASYADI (IB)", kategori: "Kantor Babawopa", rute: "Rute 6" },
+        { nama: "CV GELORA TRI TUNGGAL (IB)", kategori: "Kantor Babawopa", rute: "Rute 6" },
+        { nama: "PT. JADI KUAT BERSAMA (IB)", kategori: "Kantor Babawopa", rute: "Rute 5" },
+        { nama: "KRAKATAU INDAH (GUNUNG JATI) PWT SEL (B)", kategori: "Kantor Babawopa", rute: "Rute 5" },
+        { nama: "PT. KRAKATAU INDAH (IB)", kategori: "Kantor Babawopa", rute: "Rute 5" },
+        { nama: "BANYUMAS TRANS (IB)", kategori: "Kantor Babawopa", rute: "Rute 5" },
+        { nama: "PT MUSI RAWAS PERKASA (IB)", kategori: "Kantor Babawopa", rute: "Rute 3" },
+        { nama: "PT SURYA KUSUMA INDAH (IB)", kategori: "Kantor Babawopa", rute: "Rute 3" },
+        { nama: "AGUNG GUNAWAN KALIBENDA BNA (B)", kategori: "Kantor Babawopa", rute: "Rute 3" },
+        { nama: "CV SUMBER INTI BAJA", kategori: "Kantor Babawopa", rute: "Rute 3" },
+        { nama: "PT SUTIKNO TIRTA KENCANA", kategori: "Kantor Babawopa", rute: "Rute 3" },
+        { nama: "PT. BANGUN PERSADA LOGISTIC (IB)", kategori: "Kantor Babawopa", rute: "Rute 3" },
+        { nama: "SITI AYSAH KALIBENDA (IB)", kategori: "Kantor Babawopa", rute: "Rute 2" },
+        { nama: "CV BARU BANGKIT BNA (IB)", kategori: "Kantor Babawopa", rute: "Rute 2" },
+        { nama: "PT ASRIKIN PUTRA SEJATI (IB)", kategori: "Kantor Babawopa", rute: "Rute 2" },
+        { nama: "PT BARU BANGKIT ABADI SEJAHTERA (IB)", kategori: "Kantor Babawopa", rute: "Rute 2" },
+        { nama: "CV BARU BANGKIT SEJAHTERA BNA (IB)", kategori: "Kantor Babawopa", rute: "Rute 2" },
+        { nama: "CV BANGKIT MAKMUR ABADI BNA (IB)", kategori: "Kantor Babawopa", rute: "Rute 2" },
+        { nama: "CV BANGKIT JAYA BNA (IB)", kategori: "Kantor Babawopa", rute: "Rute 2" },
+        { nama: "PT SUTIKNO TIRTA KENCANA (B)", kategori: "Kantor Babawopa", rute: "Rute 2" }
+    ];
+
+    let notaTercatat = [];
+    const inputElemen = document.getElementById("inputOutlet");
+    const kotakSugesti = document.getElementById("kotakSugesti");
+    
+    // Variabel untuk melacak item yang sedang difokuskan via Keyboard
+    let fokusIndex = -1;
+
+    // FUNGSI MENAMPILKAN TOAST (POP-UP NOTIFIKASI DI TENGAH)
+    function showToast(pesan, tipe) {
+        const container = document.getElementById("toastContainer");
+        const toast = document.createElement("div");
+        toast.className = `toast ${tipe}`;
+        
+        // Tambahkan ikon berdasarkan tipe
+        const icon = tipe === 'success' ? '✅' : '⚠️';
+        toast.innerHTML = `<span>${icon}</span> <span>${pesan}</span>`;
+        
+        container.appendChild(toast);
+
+        // Hapus toast setelah 2 detik
+        setTimeout(() => {
+            toast.style.animation = "fadeOut 0.3s forwards";
+            setTimeout(() => toast.remove(), 300);
+        }, 2000);
+    }
+
+    // LOGIKA AUTOCOMPLETE SAAT MENGETIK
+    inputElemen.addEventListener("input", function() {
+        try {
+            const teksKetik = this.value.toLowerCase();
+            kotakSugesti.innerHTML = ""; 
+            fokusIndex = -1; // Reset fokus saat mengetik huruf baru
+            
+            if (!teksKetik) {
+                kotakSugesti.style.display = "none";
+                return;
+            }
+
+            const hasilCari = masterData.filter(item => {
+                if (!item || !item.nama) return false; 
+                return item.nama.toLowerCase().includes(teksKetik);
+            });
+
+            if (hasilCari.length > 0) {
+                kotakSugesti.style.display = "block";
+                hasilCari.forEach((item, index) => {
+                    const divItem = document.createElement("div");
+                    divItem.className = "sugesti-item";
+                    divItem.innerHTML = `<strong>${item.nama}</strong> <span style="font-size: 11px; color: #94a3b8; margin-left: 6px;">(${item.kategori})</span>`;
+                    
+                    divItem.onclick = function() {
+                        inputElemen.value = item.nama;
+                        kotakSugesti.style.display = "none";
+                        catatNota(item.nama);
+                    };
+                    kotakSugesti.appendChild(divItem);
+                });
+            } else {
+                kotakSugesti.style.display = "none";
+            }
+        } catch (error) {
+            console.log("Terjadi masalah pada data", error);
+        }
+    });
+
+    // FUNGSI NAVIGASI KEYBOARD (ARROW UP, ARROW DOWN, ENTER)
+    inputElemen.addEventListener("keydown", function(event) {
+        let items = kotakSugesti.getElementsByClassName("sugesti-item");
+        
+        if (event.key === "ArrowDown") {
+            fokusIndex++;
+            if (fokusIndex >= items.length) fokusIndex = 0; 
+            tambahFokus(items);
+        } else if (event.key === "ArrowUp") {
+            fokusIndex--;
+            if (fokusIndex < 0) fokusIndex = items.length - 1; 
+            tambahFokus(items);
+        } else if (event.key === "Enter") {
+            event.preventDefault();
+            if (fokusIndex > -1 && items.length > 0) {
+                items[fokusIndex].click();
+            } else {
+                catatNotaManual();
+            }
+        }
+    });
+
+    function tambahFokus(items) {
+        if (!items) return;
+        hapusFokus(items); 
+        if (fokusIndex >= items.length) fokusIndex = 0;
+        if (fokusIndex < 0) fokusIndex = items.length - 1;
+        
+        items[fokusIndex].classList.add("aktif");
+        items[fokusIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function hapusFokus(items) {
+        for (let i = 0; i < items.length; i++) {
+            items[i].classList.remove("aktif");
+        }
+    }
+
+    document.addEventListener("click", function(e) {
+        if (e.target !== inputElemen) {
+            kotakSugesti.style.display = "none";
+        }
+    });
+
+    // FUNGSI MENCATAT NOTA
+    function catatNota(namaOutlet) {
+        const dataDitemukan = masterData.find(item => item && item.nama === namaOutlet);
+
+        if (dataDitemukan) {
+            const sudahAda = notaTercatat.some(nota => nota.nama === dataDitemukan.nama);
+            if(sudahAda) {
+                showToast("Nota ini sudah dicatat sebelumnya!", "warning");
+            } else {
+                notaTercatat.push(dataDitemukan);
+                showToast("Nota berhasil ditambahkan!", "success");
+                renderTampilan();
+            }
+        }
+        
+        inputElemen.value = "";
+        inputElemen.focus();
+        fokusIndex = -1; 
+        kotakSugesti.style.display = "none";
+    }
+
+    function catatNotaManual() {
+        const teks = inputElemen.value.trim();
+        if(teks) catatNota(teks);
+    }
+
+    // FUNGSI MENGHAPUS NOTA
+    function hapusNota(namaOutlet) {
+        notaTercatat = notaTercatat.filter(nota => nota.nama !== namaOutlet);
+        renderTampilan();
+    }
+
+    // MENAMPILKAN HASIL SORTIR
+    function renderTampilan() {
+        const hasilDiv = document.getElementById("hasilSortir");
+        hasilDiv.innerHTML = "";
+
+        if (notaTercatat.length === 0) {
+            hasilDiv.innerHTML = "<div class='empty-state'>Belum ada nota yang dicatat. Ketikkan nama outlet di atas ✨</div>";
+            return;
+        }
+
+        const totalHeader = document.createElement("div");
+        totalHeader.className = "header-hasil";
+        totalHeader.innerHTML = `
+            <h3>Daftar Sortir Amplop:</h3>
+            <div class="badge-total">Total: ${notaTercatat.length} Outlet</div>
+        `;
+        hasilDiv.appendChild(totalHeader);
+
+        const grupRute = {};
+        notaTercatat.forEach(nota => {
+            const namaAmplop = `${nota.kategori} - ${nota.rute}`;
+            if (!grupRute[namaAmplop]) {
+                grupRute[namaAmplop] = [];
+            }
+            grupRute[namaAmplop].push(nota.nama);
+        });
+
+        const urutanAmplop = Object.keys(grupRute).sort();
+
+        for (const amplop of urutanAmplop) {
+            const daftarOutlet = grupRute[amplop];
+            
+            const grupDiv = document.createElement("div");
+            grupDiv.className = "rute-group";
+
+            const header = document.createElement("div");
+            header.className = "rute-header";
+            header.innerHTML = `
+                <span><span style="color:var(--accent-blue); margin-right:8px;">●</span>${amplop}</span> 
+                <span class="badge">${daftarOutlet.length} Outlet</span>
+            `;
+            
+            const ul = document.createElement("ul");
+            ul.className = "nota-list";
+            
+            daftarOutlet.forEach(outlet => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <span>${outlet}</span>
+                    <button class="delete-btn" onclick="hapusNota('${outlet}')">Batal</button>
+                `;
+                ul.appendChild(li);
+            });
+
+            grupDiv.appendChild(header);
+            grupDiv.appendChild(ul);
+            hasilDiv.appendChild(grupDiv);
+        }
+    }
+
+    // FUNGSI DOWNLOAD PDF
+    function downloadPDF() {
+        if (notaTercatat.length === 0) {
+            showToast("Belum ada data nota untuk didownload!", "warning");
+            return;
+        }
+
+        const element = document.getElementById('areaPrint');
+        document.body.classList.add('pdf-mode');
+
+        const opt = {
+            margin:       0.5,
+            filename:     'Rekapan_Sortir_Nota.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        showToast("Memproses PDF, harap tunggu sebentar...", "success");
+        html2pdf().set(opt).from(element).save().then(() => {
+            document.body.classList.remove('pdf-mode');
+            showToast("Download Selesai!", "success");
+        });
+    }
+
+    // FUNGSI KIRIM KE WHATSAPP (BARU)
+    function kirimKeWA() {
+        if (notaTercatat.length === 0) {
+            showToast("Belum ada data untuk dikirim!", "warning");
+            return;
+        }
+
+        // Menyusun pesan teks
+        let pesan = "*REKAPAN ARSIP NOTA HARI INI*\n\n";
+        pesan += `*Total: ${notaTercatat.length} Outlet*\n\n`;
+
+        // Kelompokkan data sama seperti tampilan di layar
+        const grupRute = {};
+        notaTercatat.forEach(nota => {
+            const namaAmplop = `${nota.kategori} - ${nota.rute}`;
+            if (!grupRute[namaAmplop]) {
+                grupRute[namaAmplop] = [];
+            }
+            grupRute[namaAmplop].push(nota.nama);
+        });
+
+        const urutanAmplop = Object.keys(grupRute).sort();
+
+        // Gabungkan teks setiap rute dan outlet
+        for (const amplop of urutanAmplop) {
+            const daftarOutlet = grupRute[amplop];
+            pesan += `*${amplop} (${daftarOutlet.length} Outlet):*\n`;
+            daftarOutlet.forEach(outlet => {
+                pesan += `- ${outlet}\n`;
+            });
+            pesan += "\n";
+        }
+
+        // Ubah teks agar bisa dibaca oleh Link WhatsApp
+        const urlPesan = encodeURIComponent(pesan);
+        
+        // Membuka tab baru yang mengarah ke WhatsApp Web / Aplikasi
+        window.open(`https://wa.me/?text=${urlPesan}`, '_blank');
+        showToast("Membuka WhatsApp...", "success");
+    }
+
+    renderTampilan();
+</script>
+
+</body>
+</html>
