@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TaxFormatter V16 - Precision Unit Parsing</title>
+    <title>TaxFormatter V17 - Multi-Drum Precision</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -96,9 +96,9 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                        TaxFormatter <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">V16 Precision Parse</span>
+                        TaxFormatter <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">V17 Multi-Drum Parse</span>
                     </h1>
-                    <p class="text-xs text-slate-400">Alat Untuk Membuat Laporan Faktur Pajak</p>
+                    <p class="text-xs text-slate-400">Alat Untuk Membuat Laporan Faktur Pajak (Support 200L & 209L)</p>
                 </div>
             </div>
         </div>
@@ -227,7 +227,8 @@
             try {
                 const rawText = document.getElementById('rawInput').value;
                 if (!rawText.trim()) return showPopup('Kosong', 'Tempel teks nota!', false);
-                const cvMatch = rawText.match(/Dikirim ke:\s*(.+?)(?=\n|Alamat:|$)/i);
+                const cvMatch = rawText.match(/Dikirim ke:\s*(.+?)(?=
+|Alamat:|$)/i);
                 if (cvMatch) document.getElementById('outletName').value = cvMatch[1].trim();
                 const notaMatch = rawText.match(/Nota Penjualan:\s*([A-Za-z0-9]+)/i);
                 if (notaMatch) document.getElementById('notaNo').value = notaMatch[1].trim();
@@ -249,12 +250,9 @@
                         itemStr = itemStr.trim();
                         if (!itemStr) continue;
                         
-                        // PRECISION PARSING V16:
-                        // Cari "pcs" dulu sebagai jangkar, karena jumlah unit (Drum/Dus) selalu di kirinya.
                         const pcsMatch = itemStr.match(/(\d+)\s*pcs/i);
                         if (pcsMatch) {
                             const beforePcs = itemStr.substring(0, pcsMatch.index).trim();
-                            // Ambil angka dan unit TERAKHIR sebelum kata "pcs"
                             const unitMatches = beforePcs.match(/(\d+)\s*(Dus|Drum|Pail|Karton|Box|Pcs|Botol|Kaleng)/gi);
                             if (unitMatches) {
                                 const lastUnitStr = unitMatches[unitMatches.length - 1];
@@ -263,12 +261,20 @@
                                 let qtyRaw = parseInt(finalMatch[1]);
                                 let unitRaw = finalMatch[2].toLowerCase();
                                 
-                                // Nama adalah segalanya sebelum match unit terakhir tadi
                                 const unitIdx = beforePcs.lastIndexOf(lastUnitStr);
                                 let name = beforePcs.substring(0, unitIdx).trim();
 
                                 let multiplier = 1, sat = "Dus";
-                                if (unitRaw === 'drum') { multiplier = 200; sat = 'Liter'; }
+                                if (unitRaw === 'drum') { 
+                                    // Pengecekan cerdas untuk 209L
+                                    // Jika dalam nama produk terdapat string "209L" atau "209 L", gunakan 209.
+                                    if (/209\s*L/i.test(name)) {
+                                        multiplier = 209;
+                                    } else {
+                                        multiplier = 200; // Default 200
+                                    }
+                                    sat = 'Liter'; 
+                                }
                                 else if (unitRaw === 'pail') { multiplier = 1; sat = 'Pail'; }
                                 else { sat = unitRaw.charAt(0).toUpperCase() + unitRaw.slice(1); }
                                 
@@ -416,7 +422,7 @@
             const ws = XLSX.utils.aoa_to_sheet(ws_data);
             ws['!cols'] = [{wch: 45}, {wch: 12}, {wch: 8}, {wch: 8}, {wch: 16}, {wch: 16}, {wch: 18}, {wch: 14}, {wch: 14}, {wch: 25}];
             XLSX.utils.book_append_sheet(wb, ws, "Faktur_Pajak");
-            XLSX.writeFile(wb, `Faktur_V16_Precision.xlsx`);
+            XLSX.writeFile(wb, `Faktur_V17_MultiDrum.xlsx`);
         }
     </script>
 </body>
