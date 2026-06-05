@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TaxFormatter V18 - Bulletproof Parse</title>
+    <title>TaxFormatter V18 - Bulletproof Parse (Fixed)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -228,8 +228,7 @@
                 const rawText = document.getElementById('rawInput').value;
                 if (!rawText.trim()) return showPopup('Kosong', 'Tempel teks nota!', false);
                 
-                const cvMatch = rawText.match(/Dikirim ke:\s*(.+?)(?=
-|Alamat:|$)/i);
+                const cvMatch = rawText.match(/Dikirim ke:\s*(.+?)(?=\n|Alamat:|$)/i);
                 if (cvMatch) document.getElementById('outletName').value = cvMatch[1].trim();
                 
                 const notaMatch = rawText.match(/Nota Penjualan:\s*([A-Za-z0-9]+)/i);
@@ -255,8 +254,7 @@
                 
                 // Pisahkan per baris atau menggunakan .00 sebagai pembatas
                 let safeProdStr = prodString.replace(/(\.00)\s*(?=[A-Za-z])/g, "$1|||");
-                let itemsArray = safeProdStr.split(/\|\|\||
-/);
+                let itemsArray = safeProdStr.split(/\|\|\||\n/);
                 
                 for (let itemStr of itemsArray) {
                     itemStr = itemStr.trim();
@@ -318,7 +316,6 @@
                 
             } catch (e) { 
                 console.error(e); 
-                // TAMPILKAN PESAN ERROR JS ASLI AGAR MUDAH DIDEBUG
                 showPopup('Error Sistem', `Gagal mengekstrak.<br><br><span style="font-family:monospace; color:#ef4444; font-size:10px; padding: 4px; background: rgba(255,0,0,0.1); border-radius: 4px; display:inline-block; margin-top:8px;">${e.name}: ${e.message}</span>`, false); 
             }
         }
@@ -448,7 +445,7 @@
             const ws = XLSX.utils.aoa_to_sheet(ws_data);
             ws['!cols'] = [{wch: 45}, {wch: 12}, {wch: 8}, {wch: 8}, {wch: 16}, {wch: 16}, {wch: 18}, {wch: 14}, {wch: 14}, {wch: 25}];
             XLSX.utils.book_append_sheet(wb, ws, "Faktur_Pajak");
-            XLSX.writeFile(wb, `Faktur_V18_Bulletproof.xlsx`);
+            XLSX.writeFile(wb, `Faktur_V18_Fixed.xlsx`);
         }
     </script>
 </body>
