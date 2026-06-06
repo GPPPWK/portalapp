@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portal Aplikasi Pajak & Gudang</title>
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect width='18' height='18' x='3' y='3' rx='2'></rect><path d='M3 9h18'></path><path d='M9 21V9'></path></svg>">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -23,7 +26,6 @@
 </head>
 <body class="h-screen flex overflow-hidden bg-slate-900">
 
-    <!-- Mobile Header & Hamburger -->
     <div class="lg:hidden absolute top-0 left-0 w-full bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center z-50">
         <div class="flex items-center gap-2 font-bold text-white">
             <div class="p-1.5 bg-blue-600 rounded-lg"><i data-lucide="layout-dashboard" class="w-5 h-5"></i></div>
@@ -34,9 +36,7 @@
         </button>
     </div>
 
-    <!-- Sidebar -->
     <aside id="sidebar" class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-full absolute lg:relative z-40 transform -translate-x-full lg:translate-x-0 sidebar-transition pt-16 lg:pt-0">
-        <!-- Logo Section -->
         <div class="p-6 hidden lg:flex items-center gap-3 border-b border-slate-800">
             <div class="p-2 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl shadow-lg shadow-blue-500/20 text-white">
                 <i data-lucide="layout-dashboard" class="w-6 h-6"></i>
@@ -47,8 +47,7 @@
             </div>
         </div>
 
-        <!-- Menu Navigation -->
-        <nav class="flex-1 overflow-y-auto py-4 space-y-1">
+        <nav class="flex-1 overflow-y-auto py-4 space-y-1 scrollbar-thin scrollbar-thumb-slate-800">
             <p class="px-6 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Aplikasi Tersedia</p>
             
             <button onclick="loadApp('TaxFormatter', 'pembuat_catatan.html', 'calculator', this)" class="menu-item bg-blue-600/15 text-blue-400 border-blue-500 border-r-4 w-full flex items-center gap-3 px-6 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition text-left">
@@ -70,6 +69,15 @@
             <button onclick="loadApp('Sortir Arsip Nota', 'arsip_nota.html', 'folder-open', this)" class="menu-item text-slate-300 border-transparent border-r-4 w-full flex items-center gap-3 px-6 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition text-left">
                 <i data-lucide="folder-open" class="w-5 h-5"></i> Sortir Arsip Nota
             </button>
+
+            <div class="my-6 border-t border-slate-800 mx-6"></div>
+
+            <p class="px-6 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Pusat Data</p>
+            <div class="px-4">
+                <button onclick="downloadDatabase()" class="w-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-lg shadow-emerald-500/5 hover:-translate-y-0.5">
+                    <i data-lucide="database-backup" class="w-4 h-4"></i> Unduh Update DB
+                </button>
+            </div>
         </nav>
 
         <div class="p-4 border-t border-slate-800 text-center">
@@ -77,12 +85,9 @@
         </div>
     </aside>
 
-    <!-- Overlay for mobile sidebar -->
     <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden backdrop-blur-sm transition-opacity"></div>
 
-    <!-- Main Content Area -->
     <main class="flex-1 flex flex-col h-full bg-slate-950 pt-16 lg:pt-0 p-2 lg:p-4">
-        <!-- Top Bar for Main Area -->
         <header class="hidden lg:flex justify-between items-center mb-4 px-2">
             <h2 id="currentAppName" class="text-lg font-bold text-slate-200 flex items-center gap-2">
                 <i data-lucide="calculator" class="w-5 h-5 text-blue-500"></i> TaxFormatter (Nota)
@@ -97,7 +102,6 @@
             </div>
         </header>
 
-        <!-- Container Iframe -->
         <div class="flex-1 bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-2xl relative">
             <div id="iframeLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-10">
                 <i data-lucide="loader-2" class="w-8 h-8 text-blue-500 animate-spin mb-2"></i>
@@ -123,30 +127,22 @@
             overlay.classList.toggle('hidden');
         }
 
-        // BUGFIX: Menambahkan parameter iconName agar ikon tidak bentrok
         function loadApp(appName, fileName, iconName, element) {
-            // Aktifkan loading screen
             loader.style.display = 'flex';
-            
-            // Ubah iframe source
             currentSrc = fileName;
             iframe.src = fileName;
 
-            // Update judul bagian atas (Header Desktop)
             appTitle.innerHTML = `<i data-lucide="${iconName}" class="w-5 h-5 text-blue-500"></i> ${appName}`;
             lucide.createIcons();
 
-            // Ubah pewarnaan menu active menggunakan Tailwind classes
             document.querySelectorAll('.menu-item').forEach(el => {
                 el.classList.remove('bg-blue-600/15', 'text-blue-400', 'border-blue-500');
                 el.classList.add('text-slate-300', 'border-transparent');
             });
 
-            // Aktifkan warna menu yang sedang di-klik
             element.classList.remove('text-slate-300', 'border-transparent');
             element.classList.add('bg-blue-600/15', 'text-blue-400', 'border-blue-500');
 
-            // Tutup sidebar di mobile setelah klik menu
             if (window.innerWidth < 1024) {
                 toggleSidebar();
             }
@@ -163,6 +159,22 @@
 
         function openNewTab() {
             window.open(currentSrc, '_blank');
+        }
+
+        // Fungsi khusus untuk tombol download database
+        function downloadDatabase() {
+            // Ubah link 'database.sql' ini dengan nama file atau API endpoint aslimu
+            const dbUrl = 'DATABASE_FAKTUR_PAJAK.xlsx'; 
+            
+            // Konfirmasi ringan
+            if(confirm('Mulai mengunduh pembaruan database?')) {
+                const link = document.createElement('a');
+                link.href = dbUrl;
+                link.download = ''; 
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
         }
     </script>
 </body>
