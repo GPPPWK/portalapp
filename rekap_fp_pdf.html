@@ -136,21 +136,17 @@
     <script>
         let hasilEkstraksiFinal = [];
 
-        // --- ANIMASI HEADER SCROLL ---
         window.addEventListener('scroll', function() {
             const wrapper = document.getElementById('headerWrapper');
             const header = document.getElementById('mainHeader');
             
-            // Jika di-scroll lebih dari 20px
             if (window.scrollY > 20) {
-                // Berubah jadi Full Width (Menempel di atas)
                 wrapper.classList.replace('top-4', 'top-0');
                 wrapper.classList.replace('px-4', 'px-0');
                 
                 header.classList.remove('max-w-4xl', 'rounded-full', 'shadow-lg', 'shadow-blue-900/5', 'border');
                 header.classList.add('max-w-full', 'rounded-none', 'shadow-sm', 'border-b');
             } else {
-                // Kembali jadi "Pil" melayang
                 wrapper.classList.replace('top-0', 'top-4');
                 wrapper.classList.replace('px-0', 'px-4');
                 
@@ -159,7 +155,6 @@
             }
         });
 
-        // --- CUSTOM MODAL POP-UP ---
         function showModal(title, message, isError = false) {
             const modal = document.getElementById('customModal');
             const modalContent = document.getElementById('modalContent');
@@ -195,7 +190,6 @@
             }, 200); 
         }
 
-        // --- ENGINE EKSTRAKSI TEKS DARI PDF ---
         async function ekstrakTeksDariPDF(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -220,38 +214,32 @@
             });
         }
 
-        // --- ENGINE PENCARIAN POLA (REGEX) ---
         function parseDataFaktur(teksMentah) {
             let hasil = { nama: "-", npwp: "-", noFaktur: "-", referensi: "-" };
             
-            // 1. Cari No Faktur Pajak
             const matchFaktur = teksMentah.match(/(?:Kode dan Nomor Seri Faktur Pajak|Nomor Seri Faktur Pajak)\s*:\s*([\d\.\-]+)/i) || 
                                 teksMentah.match(/(\d{3}[\.\-]?\d{3}[\.\-]?\d{2}[\.\-]?\d{8})/);
             if (matchFaktur) {
                 hasil.noFaktur = matchFaktur[1].replace(/[^0-9]/g, ''); 
             }
 
-            // 2. Isolasikan bagian "Pembeli" 
             const keywordPembeli = "Pembeli Barang Kena Pajak";
             const idxPembeli = teksMentah.toLowerCase().indexOf(keywordPembeli.toLowerCase());
             
             if (idxPembeli !== -1) {
                 const teksPembeli = teksMentah.substring(idxPembeli, idxPembeli + 800); 
                 
-                // Cari Nama Pembeli
                 const matchNama = teksPembeli.match(/Nama\s*:\s*(.*?)(?=\s*Alamat|\s*NPWP)/i);
                 if (matchNama) {
                     hasil.nama = matchNama[1].trim();
                 }
 
-                // Cari NPWP Pembeli
                 const matchNPWP = teksPembeli.match(/NPWP\s*:\s*([\d\.\-]+)/i);
                 if (matchNPWP) {
                     hasil.npwp = matchNPWP[1].replace(/[^0-9]/g, '');
                 }
             }
 
-            // 3. Cari Referensi 
             const matchRef = teksMentah.match(/Referensi\s*:\s*([A-Za-z0-9\-\_,\/\s]+)/i);
             if (matchRef) {
                 let textRef = matchRef[1].trim();
@@ -268,7 +256,6 @@
             return hasil;
         }
 
-        // --- KONTROLER UPLOAD & PROSES ---
         async function prosesBanyakPDF(input) {
             const files = input.files;
             const jumlahFile = files.length;
@@ -320,7 +307,6 @@
             }, 400);
         }
 
-        // --- MERENDER HASIL KE TABEL ---
         function tampilkanKeTabel() {
             const tbody = document.getElementById('bodyTabelHasil');
             tbody.innerHTML = "";
@@ -329,7 +315,6 @@
 
             hasilEkstraksiFinal.forEach((data, index) => {
                 
-                // Pisahkan Multi-referensi menjadi Badge Biru
                 let htmlReferensi = "";
                 if (data.referensi !== "-" && data.referensi !== "") {
                     const listRef = data.referensi.split(',');
@@ -366,37 +351,59 @@
             hasilContainer.style.display = "block";
         }
 
-        // --- FUNGSI EXPORT KE EXCELJS ---
+        // --- FUNGSI EXPORT KE EXCELJS (SUDAH DISESUAIKAN DENGAN TEMPLATE GUDANG) ---
         async function downloadExcel() {
             if (hasilEkstraksiFinal.length === 0) return;
 
             try {
                 const workbook = new ExcelJS.Workbook();
-                const sheet = workbook.addWorksheet("Rekapan Faktur PDF");
+                const sheet = workbook.addWorksheet("FAKTUR GELORA"); // Nama sheet menyesuaikan template
 
+                // Menyesuaikan struktur kolom target agar mudah di copy-paste
                 sheet.columns = [
-                    { header: 'No', key: 'no', width: 5 },
-                    { header: 'Nama Pembeli', key: 'nama', width: 40 },
-                    { header: 'NPWP', key: 'npwp', width: 25 },
-                    { header: 'Nomor Faktur Pajak', key: 'faktur', width: 25 },
-                    { header: 'Nomor Referensi', key: 'referensi', width: 35 },
-                    { header: 'Nama File Asli', key: 'file', width: 30 }
+                    { header: 'NO', key: 'no', width: 6 },
+                    { header: 'TGL', key: 'tgl', width: 12 },
+                    { header: 'NO NOTA', key: 'nota', width: 25 },
+                    { header: 'NAMA OUTLET', key: 'nama', width: 40 },
+                    { header: 'NOMINAL', key: 'nominal', width: 15 },
+                    { header: 'DPP', key: 'dpp', width: 15 },
+                    { header: 'PPN', key: 'ppn', width: 15 },
+                    { header: 'NO FAKTUR PAJAK', key: 'faktur', width: 25 },
+                    { header: 'KTP/NPWP', key: 'npwp', width: 20 },
+                    { header: 'NAMA PENGGANTI', key: 'pengganti', width: 30 }
                 ];
 
                 const headerRow = sheet.getRow(1);
-                headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-                // Header biru tua gradien ala excel
-                headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A8A' } }; 
+                headerRow.font = { bold: true };
                 headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
 
-                hasilEkstraksiFinal.forEach((data, idx) => {
-                    sheet.addRow({
-                        no: idx + 1,
-                        nama: data.nama,
-                        npwp: data.npwp,
-                        faktur: data.noFaktur,
-                        referensi: data.referensi, 
-                        file: data.fileName
+                let barisUrutan = 1;
+
+                hasilEkstraksiFinal.forEach((data) => {
+                    // Ekstrak referensi. Jika string kosong atau strip, jadikan array berisi satu elemen strip.
+                    let daftarReferensi = [];
+                    if (data.referensi !== "-" && data.referensi !== "") {
+                        daftarReferensi = data.referensi.split(',').map(r => r.trim()).filter(r => r);
+                    }
+                    
+                    if (daftarReferensi.length === 0) {
+                        daftarReferensi = ["-"];
+                    }
+
+                    // Loop per nomor nota (satu faktur bisa jadi beberapa baris jika referensinya banyak)
+                    daftarReferensi.forEach((ref) => {
+                        sheet.addRow({
+                            no: barisUrutan++,
+                            tgl: "",           // Dikosongkan sesuai kolom target
+                            nota: ref,         // Setiap baris hanya memuat SATU nomor nota
+                            nama: data.nama,
+                            nominal: "",       // Dikosongkan sesuai kolom target
+                            dpp: "",           // Dikosongkan sesuai kolom target
+                            ppn: "",           // Dikosongkan sesuai kolom target
+                            faktur: data.noFaktur,
+                            npwp: data.npwp,
+                            pengganti: ""      // Dikosongkan sesuai kolom target
+                        });
                     });
                 });
 
@@ -406,7 +413,8 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = "Rekapan_Ekstrak_Faktur_Pajak.xlsx";
+                // Nama file download otomatis
+                a.download = "Rekapan_Faktur_Siap_Copy.xlsx";
                 a.click();
                 window.URL.revokeObjectURL(url);
 
