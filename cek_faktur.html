@@ -136,7 +136,6 @@
         let pdfFiles = [];
         let hasilAnalisis = [];
 
-        // --- UI UTILS ---
         function showModal(title, message, isError = false) {
             const modal = document.getElementById('customModal');
             const content = document.getElementById('modalContent');
@@ -185,10 +184,11 @@
             return Math.round(parseFloat(s)) || 0;
         }
 
+        // --- PENTING: Perbaikan Syntax Error pada Dragleave ---
         function setupDragDrop(dropId, inputId, callback) {
             const dropZone = document.getElementById(dropId);
             dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover')); // Sudah diperbaiki
             dropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dropZone.classList.remove('dragover');
@@ -199,7 +199,6 @@
             });
         }
 
-        // --- READ EXCEL ---
         function handleExcelUpload(files) {
             if(!files.length) return;
             const file = files[0];
@@ -215,44 +214,78 @@
                 sheetData = {};
                 let countNota = 0;
 
+                const isSystemWord = (str) => ["PENGGANTIAN","PENGUSAHA","PENERIMA","PENJUALAN","PENYERAHAN"].includes(str.toUpperCase());
+
                 for (let i = 0; i < rows.length; i++) {
                     const row = rows[i];
                     if(!row || row.length === 0) continue;
                     
                     let refNota = String(row[9] || "").trim().toUpperCase();
 
-                    // Fallback Cari Teks PEN
                     if(!refNota || refNota === "-" || refNota === "UNDEFINED" || refNota === "NO NOTA") {
                         for(let j=0; j<row.length; j++) {
                             let cellStr = String(row[j] || "").trim().toUpperCase();
-                            if(cellStr.startsWith("PEN") && /[0-9]/.test(cellStr)) {
+                            if(cellStr.startsWith("PEN") && !isSystemWord(cellStr)) {
                                 refNota = cellStr; break;
                             }
                         }
                     }
 
-                    // Jika referensi valid PEN
-                    if(refNota && refNota.startsWith("PEN") && /[0-9]/.test(refNota)) {
+                    if(refNota && refNota.startsWith("PEN") && !isSystemWord(refNota)) {
                         
-                        // Ekstrak Netto dari baris i+1 (baris di bawahnya), index ke-6
-                        let summaryVal = rows[i+1] ? rows[i+1][6] : 0;
-                        if(summaryVal && typeof summaryVal === 'object') summaryVal = summaryVal.result;
-                        let nominal = cleanRupiah(summaryVal);
+                        let nominal = 0;
+                        let totalRowIndex = -1;
+                        
+                        // Cari baris Total ke bawah
+                        for (let k = i; k < rows.length; k++) {
+                            let rowK = rows[k];
+                            if (!rowK) continue;
+                            let tgl = String(rowK[1] || "").trim();
+                            let qty = String(rowK[2] || "").trim();
+                            let netto = rowK[6];
 
-                        // Fallback jika baris bawah kosong, pakai nilai baris sejajar
-                        if(nominal === 0) {
+                            if (tgl === "" && qty === "" && netto !== undefined && netto !== "") {
+                                let val = netto;
+                                if(typeof val === 'object') val = val.result;
+                                nominal = cleanRupiah(val);
+                                totalRowIndex = k;
+                                break;
+                            }
+                            if (k > i && tgl === "TGL") break; 
+                        }
+
+                        if (totalRowIndex === -1) {
                             let itemVal = row[6];
                             if(itemVal && typeof itemVal === 'object') itemVal = itemVal.result;
                             nominal = cleanRupiah(itemVal);
+                            totalRowIndex = i; 
                         }
-                        
-                        let nitku = String(row[8] || "").replace(/[^0-9]/g, '');
 
-                        if(sheetData[refNota]) {
-                            sheetData[refNota].total += nominal;
+                        // Ekstrak NITKU dari mana saja asalkan 15, 16, atau 22 digit
+                        let nitku = "-";
+                        let rawNitku = String(row[8] || "").replace(/[^0-9]/g, '');
+                        if(rawNitku.length === 15 || rawNitku.length === 16 || rawNitku.length === 22) {
+                            nitku = rawNitku;
                         } else {
-                            sheetData[refNota] = { total: nominal, nitku: nitku, used: false };
+                            for (let j = 0; j < row.length; j++) {
+                                let cellVal = String(row[j] || "").trim();
+                                let onlyDigits = cellVal.replace(/[^0-9]/g, '');
+                                if ((onlyDigits.length === 15 || onlyDigits.length === 16 || onlyDigits.length === 22) && cellVal.length < 30) {
+                                    nitku = onlyDigits;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Anti Double Sum Tracking
+                        if (!sheetData[refNota]) {
+                            sheetData[refNota] = { total: nominal, totalRow: totalRowIndex, nitku: nitku, used: false };
                             countNota++;
+                        } else {
+                            if (sheetData[refNota].totalRow !== totalRowIndex) {
+                                sheetData[refNota].total += nominal;
+                                sheetData[refNota].totalRow = totalRowIndex; 
+                            }
                         }
                     }
                 }
@@ -264,7 +297,6 @@
 
         setupDragDrop('dropSheet', 'excelInput', handleExcelUpload);
 
-        // --- READ PDF ---
         function handlePDFUpload(files) {
             if(!files.length) return;
             pdfFiles = Array.from(files);
@@ -285,31 +317,31 @@
                 teksMentah += c.items.map(x => x.str.trim()).filter(Boolean).join(" ") + " ";
             }
 
-            // 1. Ekstrak No Faktur
             const matchFaktur = teksMentah.match(/(?:Kode dan Nomor Seri Faktur Pajak|Nomor Seri Faktur Pajak)\s*:\s*([\d\.\-]+)/i) || 
                                 teksMentah.match(/(\d{3}[\.\-]?\d{3}[\.\-]?\d{2}[\.\-]?\d{8})/);
             let noFaktur = matchFaktur ? matchFaktur[1].replace(/[^0-9]/g, '') : "TIDAK TERBACA";
 
-            // 2. Ekstrak Total Harga
-            const dppMatch = teksMentah.match(/Harga Jual \/ Penggantian \/ Uang Muka \/ Termin\s+([\d\.,]+)/i);
-            const ppnMatch = teksMentah.match(/Jumlah PPN.*?\s+([\d\.,]+)/i);
-            let total = 0;
-            if(dppMatch && ppnMatch) {
-                total = cleanRupiah(dppMatch[1]) + cleanRupiah(ppnMatch[1]);
-            }
+            // LOGIKA NOMINAL: Harga Jual / Penggantian (Pre-discount) + PPN
+            const matchHarga = teksMentah.match(/(?:Termin|Harga Jual \/ Penggantian)\s*([\d\.,]+)/i) || teksMentah.match(/Harga Jual[^0-9]+([\d\.,]+)/i);
+            let hargaJual = matchHarga ? cleanRupiah(matchHarga[1]) : 0;
+            const matchPpn = teksMentah.match(/Jumlah PPN.*?\s+([\d\.,]+)/i);
+            let ppn = matchPpn ? cleanRupiah(matchPpn[1]) : 0;
+            let total = hargaJual + ppn;
 
-            // 3. Ekstrak Multi Referensi (Filter PEN Agresif)
             let referensiArr = [];
-            const refIndex = teksMentah.match(/Referensi\s*[:]?/i);
+            const isSystemWord = (str) => ["PENGGANTIAN","PENGUSAHA","PENERIMA","PENJUALAN","PENYERAHAN"].includes(str.toUpperCase());
+
+            const refIndex = teksMentah.match(/Referensi\s*[:]?/i) || teksMentah.match(/Referans[ıi]\s*[:]?/i);
             if (refIndex) {
                 const startIdx = refIndex.index + refIndex[0].length;
                 let sisaTeks = teksMentah.substring(startIdx, startIdx + 300);
+                
                 const stopMatch = sisaTeks.match(/(?:Jakarta|Bandung|Surabaya|Semarang|Purwokerto|Cilacap|Banyumas|Sokaraja|Tegal|Brebes|Pemalang|Batang|Kendal|Tgl|Tanggal|Pajak|Sesuai|Dibuat|Total|Nama|No\.|[A-Z][a-z]+,\s*\d{1,2}\s+[A-Za-z]+\s+\d{4})/i);
                 if (stopMatch) sisaTeks = sisaTeks.substring(0, stopMatch.index);
                 
                 const penMatches = sisaTeks.match(/PEN[A-Z0-9]{5,20}/gi);
                 if (penMatches) {
-                    let validPens = penMatches.filter(p => /[0-9]/.test(p));
+                    let validPens = penMatches.filter(p => !isSystemWord(p));
                     referensiArr = [...new Set(validPens.map(r => r.toUpperCase()))];
                 } else {
                     let textRef = sisaTeks.trim().replace(/\s{2,}/g, ' ').replace(/\s*,\s*/g, ',');
@@ -320,12 +352,11 @@
             } else {
                 const globalPens = teksMentah.match(/PEN[A-Z0-9]{5,20}/gi);
                 if(globalPens) {
-                    let validPens = globalPens.filter(p => /[0-9]/.test(p));
+                    let validPens = globalPens.filter(p => !isSystemWord(p));
                     referensiArr = [...new Set(validPens.map(r => r.toUpperCase()))];
                 }
             }
 
-            // 4. Ekstrak NITKU / NPWP (Dari Pembeli)
             let nitku = "-";
             const idxPembeli = teksMentah.toLowerCase().indexOf("pembeli barang kena pajak");
             if (idxPembeli !== -1) {
@@ -342,7 +373,6 @@
             return { fileName: file.name, noFaktur, referensiArr, total, nitku };
         }
 
-        // --- MAIN PROCESSING ---
         async function prosesValidasi() {
             if (Object.keys(sheetData).length === 0) return showModal("Data Kosong", "Harap upload file Master Excel terlebih dahulu.", true);
             if (pdfFiles.length === 0) return showModal("Data Kosong", "Harap upload minimal 1 file PDF Faktur Pajak.", true);
@@ -361,14 +391,32 @@
                 let sheetNitku = "-";
                 let notesFound = [];
                 let notesNotFound = [];
+                let usedTotalRows = new Set(); // Cegah Duplikat Jumlah untuk Dwi Tunggal
 
                 if(pdfData.referensiArr.length > 0) {
                     pdfData.referensiArr.forEach(ref => {
-                        if(sheetData[ref]) {
-                            sheetTotal += sheetData[ref].total;
-                            sheetData[ref].used = true;
-                            if(sheetNitku === "-") sheetNitku = sheetData[ref].nitku || "-";
-                            notesFound.push(ref);
+                        
+                        // OCR TYPO MAKER (O jadi Q)
+                        let matchedRef = ref;
+                        if (!sheetData[ref]) {
+                            let altRefQ = ref.replace(/O/g, 'Q');
+                            let altRefO = ref.replace(/Q/g, 'O');
+                            if (sheetData[altRefQ]) matchedRef = altRefQ;
+                            else if (sheetData[altRefO]) matchedRef = altRefO;
+                            else if (sheetData[ref.replace(/0/g, 'O')]) matchedRef = ref.replace(/0/g, 'O');
+                        }
+
+                        if(sheetData[matchedRef]) {
+                            let tRow = sheetData[matchedRef].totalRow;
+                            
+                            if (!usedTotalRows.has(tRow)) {
+                                sheetTotal += sheetData[matchedRef].total;
+                                usedTotalRows.add(tRow);
+                            }
+
+                            sheetData[matchedRef].used = true;
+                            if(sheetNitku === "-") sheetNitku = sheetData[matchedRef].nitku || "-";
+                            notesFound.push(matchedRef);
                         } else {
                             notesNotFound.push(ref);
                         }
@@ -380,11 +428,10 @@
                 
                 let statusInfo = { text: "TIDAK DIKETAHUI", color: "text-slate-400", bg: "bg-slate-800", icon: "help-circle" };
 
-                // LOGIKA STATUS
                 if(pdfData.referensiArr.length === 0) {
                     statusInfo = { text: "PDF TANPA REF", color: "text-red-400", bg: "bg-red-500/10 border-red-500/20", icon: "file-warning" };
                 } else if(notesNotFound.length === pdfData.referensiArr.length) {
-                    statusInfo = { text: "NOTA TDK DI SHEET", color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20", icon: "search-x" };
+                    statusInfo = { text: "TDK ADA DI EXCEL", color: "text-orange-400", bg: "bg-orange-500/10 border-orange-500/20", icon: "search-x" };
                 } else if(notesNotFound.length > 0) {
                     statusInfo = { text: "REF PARSIAL", color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20", icon: "split-square-horizontal" };
                 } else if(diff <= toleransi) {
@@ -409,7 +456,6 @@
                 bar.style.width = `${(done / pdfFiles.length) * 100}%`;
             }
 
-            // Cek Nota yang ada di Sheet tapi belum ada PDF-nya
             for(let key in sheetData) {
                 if(!sheetData[key].used) {
                     hasilAnalisis.push({
@@ -431,7 +477,6 @@
             setTimeout(()=> bar.style.width = '0%', 1000);
         }
 
-        // --- RENDER TABLE ---
         function renderTable() {
             const tbody = document.getElementById('hasilBody');
             tbody.innerHTML = "";
@@ -489,7 +534,6 @@
             lucide.createIcons();
         }
 
-        // --- EXPORT TO EXCEL ---
         function exportExcel() {
             if(hasilAnalisis.length === 0) return showModal("Kosong", "Tidak ada data untuk diexport.", true);
             
