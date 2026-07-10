@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Excel Piutang Multi-Kategori</title>
+    
+    <!-- UPGRADE: Menggunakan xlsx-js-style agar bisa mewarnai dan memberi garis (border) pada Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #090a0f; 
+            color: #f8fafc; 
+            background-image: 
+                radial-gradient(circle at 10% 50%, rgba(59, 130, 246, 0.15), transparent 25%),
+                radial-gradient(circle at 90% 30%, rgba(168, 85, 247, 0.15), transparent 25%);
+            background-attachment: fixed;
+        }
+        
+        .glass-card {
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-header {
+            background: rgba(9, 10, 15, 0.6);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+
+        textarea::-webkit-scrollbar { width: 8px; height: 8px; }
+        textarea::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 8px; }
+        textarea::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.3); border-radius: 8px; }
+
+        @keyframes pop { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .animate-pop { animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-blue-500/30 pb-12">
+
+    <!-- Modal Pop-Up Notifikasi -->
+    <div id="customModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="glass-card p-8 rounded-3xl shadow-2xl max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300 flex flex-col items-center relative" id="modalContent">
+            <div id="modalIcon" class="flex items-center justify-center w-20 h-20 rounded-full mb-5 shadow-inner z-10 relative bg-emerald-500/20 border border-emerald-500/30 text-emerald-400">
+                <i data-lucide="check-circle-2" class="w-10 h-10"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white text-center mb-2">Sukses!</h3>
+            <p class="text-sm text-slate-300 text-center mb-8 leading-relaxed" id="modalMessage">Data berhasil diproses.</p>
+            <button onclick="closeModal()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-500 hover:opacity-90 text-white font-bold py-3.5 rounded-xl transition shadow-lg hover:-translate-y-0.5">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="glass-header py-4 px-6 mb-8 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-[1500px] mx-auto flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white shadow-lg">
+                    <i data-lucide="folder-tree" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        Rekap Piutang Multi-Kategori
+                    </h1>
+                    <p class="text-[11px] text-slate-400 font-medium tracking-wide">Auto-Sort Area ke Dalam Tab Sheet yang Sama & Auto-Format Rp</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-[1500px] mx-auto px-4 sm:px-6 space-y-6">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            
+            <!-- Area Paste -->
+            <div class="lg:col-span-3 glass-card rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-blue-400 to-indigo-500"></div>
+                <h2 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                    <i data-lucide="clipboard-paste" class="w-4 h-4 text-blue-400"></i> 1. Paste Laporan Rute di Sini
+                </h2>
+                
+                <textarea id="pasteArea" rows="7" 
+                    class="w-full bg-black/30 border border-slate-700 rounded-2xl p-5 text-sm font-mono text-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors custom-scrollbar shadow-inner" 
+                    placeholder="Contoh:&#10;Rekap Piutang: Sales Banjarnegara | Rute: 1&#10;Nama Outlet ... PTM ... dst..."></textarea>
+                
+                <div class="mt-4 flex flex-col sm:flex-row gap-4">
+                    <button onclick="prosesTeks()" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 border border-white/10 shadow-lg shadow-blue-900/50">
+                        <i data-lucide="cpu" class="w-5 h-5 text-yellow-300"></i> Proses & Deteksi Kategori Otomatis
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel Koleksi Data -->
+            <div class="glass-card rounded-3xl p-6 shadow-xl relative flex flex-col h-full">
+                <div class="absolute top-0 left-0 w-full h-[3px] bg-emerald-500/80"></div>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex justify-between items-center">
+                    <span>Pengaturan Waktu</span>
+                </h3>
+                
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-1.5">Bulan Laporan (Global)</label>
+                        <input type="text" id="inputBulan" value="JUNI 2026" class="w-full bg-black/30 border border-slate-700 text-emerald-400 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 uppercase">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-1.5">Posisi Minggu Ke- (Global)</label>
+                        <select id="inputMinggu" class="w-full bg-black/30 border border-slate-700 text-emerald-400 rounded-xl px-4 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer">
+                            <option value="1">Minggu 1</option>
+                            <option value="2">Minggu 2</option>
+                            <option value="3">Minggu 3</option>
+                            <option value="4">Minggu 4</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-700 pt-4 flex-1 flex flex-col">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Rekap Kategori Tersimpan</h3>
+                    
+                    <!-- Area Daftar Sheet -->
+                    <div id="sheetList" class="flex-1 flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-1 min-h-[100px]">
+                        <div class="text-xs text-slate-500 italic text-center mt-4" id="emptyStateMsg">
+                            Belum ada data masuk.<br>Proses data lalu klik "Simpan".
+                        </div>
+                    </div>
+
+                    <button id="btnDownloadSemua" onclick="exportSemuaKeExcel()" class="mt-4 w-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all opacity-50 cursor-not-allowed" disabled>
+                        <i data-lucide="download" class="w-4 h-4"></i> Download File Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabel Preview Sementara -->
+        <div id="tableContainer" class="hidden glass-card rounded-3xl shadow-xl border border-slate-700 overflow-hidden animate-pop">
+            
+            <div class="bg-black/50 p-4 border-b border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-500/20 p-2 rounded-lg border border-blue-500/30">
+                        <i data-lucide="eye" class="w-4 h-4 text-blue-400"></i>
+                    </div>
+                    <div>
+                        <h3 id="reportTitle" class="text-sm font-bold text-slate-200 tracking-wide uppercase">PRATINJAU RUTE</h3>
+                        <p id="reportCategory" class="text-[10px] text-blue-400 font-bold mt-0.5">Kategori: -</p>
+                    </div>
+                </div>
+                <button onclick="simpanKeAntrean()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-6 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:-translate-y-0.5">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i> Simpan ke Lembar Excel
+                </button>
+            </div>
+
+            <div class="overflow-x-auto custom-scrollbar max-h-[40vh]">
+                <table class="w-full text-left whitespace-nowrap">
+                    <thead class="bg-black/60 text-slate-300 text-[11px] font-extrabold uppercase tracking-wider sticky top-0 z-10 backdrop-blur-md border-b border-white/10 shadow-sm">
+                        <tr>
+                            <th class="px-5 py-4 w-16 text-center">NO</th>
+                            <th class="px-5 py-4">Nama Outlet</th>
+                            <th class="px-5 py-4 text-center bg-white/5" id="th1">1</th>
+                            <th class="px-5 py-4 text-center" id="th2">2</th>
+                            <th class="px-5 py-4 text-center" id="th3">3</th>
+                            <th class="px-5 py-4 text-center" id="th4">4</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hasilBody" class="text-xs text-slate-200 divide-y divide-white/5">
+                        <!-- Data Tabel -->
+                    </tbody>
+                    <tfoot id="hasilFoot" class="bg-blue-900/20 font-bold text-blue-300">
+                        <!-- Footer Total -->
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        // Object utama pengelompokan Kategori -> Array of Rute
+        let koleksiKategori = {}; 
+        
+        let currentTempData = [];
+        let currentTotalPiutang = 0;
+        let autoAreaKategori = "LAIN-LAIN";
+        let autoRute = "?";
+
+        function showModal(msg) {
+            const modal = document.getElementById('customModal');
+            const content = document.getElementById('modalContent');
+            document.getElementById('modalMessage').innerText = msg;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => { modal.classList.remove('opacity-0'); content.classList.remove('scale-95'); }, 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('customModal');
+            const content = document.getElementById('modalContent');
+            modal.classList.add('opacity-0');
+            content.classList.add('scale-95');
+            setTimeout(() => { modal.classList.remove('flex'); modal.classList.add('hidden'); }, 300);
+        }
+
+        function formatIDRHTML(num) {
+            if(num === 0) return `<span class="text-slate-600">-</span>`;
+            return new Intl.NumberFormat('id-ID').format(num);
+        }
+
+        function cleanRupiah(str) {
+            if (!str) return 0;
+            let val = String(str).trim().replace(/Rp\.?\s*/gi, '').replace(/\./g, '').replace(/,/g, '');
+            let num = parseInt(val);
+            return isNaN(num) ? 0 : num;
+        }
+
+        // --- SISTEM DETEKSI KATEGORI PINTAR ---
+        function deteksiKategori(teks) {
+            let upper = teks.toUpperCase();
+            if (upper.includes("BANJAR") || upper.includes("PURBALINGGA") || upper.includes("BNA") || upper.includes("PBG")) return "BANJARNEGARA PURBALINGGA";
+            if (upper.includes("SUPERVISOR")) return "SPV BABAWOPA";
+            if (upper.includes("BANYUMAS") || upper.includes("BMS")) return "BANYUMAS";
+            if (upper.includes("BARAT")) return "INDUSTRI BARAT";
+            if (upper.includes("TENGAH")) return "INDUSTRI TENGAH";
+            if (upper.includes("KANTOR") || upper.includes("BABA") || upper.includes("WOPA")) return "KANTOR BABAWOPA";
+            
+            let match = upper.match(/SALES\s+([A-Z]+)/);
+            if (match) return match[1];
+            return "LAIN-LAIN";
+        }
+
+        function prosesTeks() {
+            const rawText = document.getElementById('pasteArea').value.trim();
+            if (!rawText) return alert("Kotak teks masih kosong!");
+
+            const lines = rawText.split('\n');
+            currentTempData = [];
+            currentTotalPiutang = 0;
+            autoAreaKategori = "LAIN-LAIN";
+            autoRute = "?";
+
+            const mingguKe = parseInt(document.getElementById('inputMinggu').value);
+            const bulan = document.getElementById('inputBulan').value.toUpperCase() || "BULAN INI";
+            
+            for(let w=1; w<=4; w++){
+                document.getElementById('th'+w).className = (w === mingguKe) 
+                    ? "px-5 py-4 text-center bg-blue-500/20 text-blue-400 border-b-2 border-blue-500" 
+                    : "px-5 py-4 text-center";
+            }
+
+            let dataDitemukan = false;
+            let noUrut = 1;
+            let titleDariWeb = "";
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line) continue;
+
+                if (line.toLowerCase().includes("rekap piutang:")) {
+                    titleDariWeb = line;
+                    const ruteMatch = line.match(/Rute:\s*(\d+)/i);
+                    if (ruteMatch) autoRute = ruteMatch[1].trim();
+                    autoAreaKategori = deteksiKategori(line);
+                    continue;
+                }
+
+                if (line.toLowerCase().includes("nama outlet") && line.toLowerCase().includes("ptm")) continue;
+
+                let cols = line.split('\t');
+                if (cols.length < 5) cols = line.split(/\s{2,}/); 
+
+                if (cols.length >= 4) {
+                    dataDitemukan = true;
+
+                    let outlet = cols[0] ? cols[0].trim() : "-";
+                    let totalStr = cols[3] ? cols[3].trim() : "Rp. 0"; 
+                    
+                    let nominal = cleanRupiah(totalStr);
+                    currentTotalPiutang += nominal;
+
+                    // Menyimpan angka numerik murni untuk SheetJS
+                    let rowData = [noUrut, outlet, 0, 0, 0, 0];
+                    if(nominal > 0) rowData[mingguKe + 1] = nominal;
+
+                    currentTempData.push(rowData);
+                    noUrut++;
+                }
+            }
+
+            if (dataDitemukan) {
+                document.getElementById('reportTitle').innerText = `PIUTANG SALES ${autoAreaKategori} RUTE ${autoRute} BULAN ${bulan}`;
+                document.getElementById('reportCategory').innerText = `Masuk ke Kategori Tab: "${autoAreaKategori}"`;
+                
+                const tbody = document.getElementById('hasilBody');
+                const tfoot = document.getElementById('hasilFoot');
+                tbody.innerHTML = "";
+                
+                currentTempData.forEach(r => {
+                    let w1 = mingguKe === 1 ? formatIDRHTML(r[2]) : formatIDRHTML(0);
+                    let w2 = mingguKe === 2 ? formatIDRHTML(r[3]) : formatIDRHTML(0);
+                    let w3 = mingguKe === 3 ? formatIDRHTML(r[4]) : formatIDRHTML(0);
+                    let w4 = mingguKe === 4 ? formatIDRHTML(r[5]) : formatIDRHTML(0);
+
+                    tbody.innerHTML += `
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="px-5 py-3 text-center text-slate-400 font-mono">${r[0]}</td>
+                        <td class="px-5 py-3 font-bold text-slate-200">${r[1]}</td>
+                        <td class="px-5 py-3 text-center font-mono ${mingguKe===1 && r[2]>0 ? 'text-blue-400' : ''}">${w1}</td>
+                        <td class="px-5 py-3 text-center font-mono ${mingguKe===2 && r[3]>0 ? 'text-blue-400' : ''}">${w2}</td>
+                        <td class="px-5 py-3 text-center font-mono ${mingguKe===3 && r[4]>0 ? 'text-blue-400' : ''}">${w3}</td>
+                        <td class="px-5 py-3 text-center font-mono ${mingguKe===4 && r[5]>0 ? 'text-blue-400' : ''}">${w4}</td>
+                    </tr>`;
+                });
+
+                let w1T = mingguKe === 1 ? formatIDRHTML(currentTotalPiutang) : formatIDRHTML(0);
+                let w2T = mingguKe === 2 ? formatIDRHTML(currentTotalPiutang) : formatIDRHTML(0);
+                let w3T = mingguKe === 3 ? formatIDRHTML(currentTotalPiutang) : formatIDRHTML(0);
+                let w4T = mingguKe === 4 ? formatIDRHTML(currentTotalPiutang) : formatIDRHTML(0);
+
+                tfoot.innerHTML = `
+                    <tr>
+                        <td colspan="2" class="px-5 py-4 text-center tracking-widest">TOTAL</td>
+                        <td class="px-5 py-4 text-center font-mono">${w1T}</td>
+                        <td class="px-5 py-4 text-center font-mono">${w2T}</td>
+                        <td class="px-5 py-4 text-center font-mono">${w3T}</td>
+                        <td class="px-5 py-4 text-center font-mono">${w4T}</td>
+                    </tr>
+                `;
+
+                document.getElementById('tableContainer').classList.remove('hidden');
+                document.getElementById('tableContainer').scrollIntoView({ behavior: 'smooth', block: 'end' });
+            } else {
+                alert("Format teks tidak dikenali. Pastikan Anda mengcopy dari awal judul 'Rekap Piutang...'");
+            }
+        }
+
+        // --- 2. SIMPAN KE KERANJANG (DIKELOMPOKKAN BERDASARKAN KATEGORI) ---
+        function simpanKeAntrean() {
+            if(currentTempData.length === 0) return;
+
+            const bulan = document.getElementById('inputBulan').value.toUpperCase() || "BULAN INI";
+            const mingguKe = parseInt(document.getElementById('inputMinggu').value);
+            
+            if (!koleksiKategori[autoAreaKategori]) {
+                koleksiKategori[autoAreaKategori] = [];
+            }
+
+            koleksiKategori[autoAreaKategori].push({
+                rute: autoRute,
+                minggu: mingguKe,
+                data: [...currentTempData],
+                total: currentTotalPiutang,
+                judulLengkap: `PIUTANG SALES ${autoAreaKategori} RUTE ${autoRute} BULAN ${bulan}`
+            });
+
+            document.getElementById('pasteArea').value = "";
+            document.getElementById('tableContainer').classList.add('hidden');
+            currentTempData = [];
+            currentTotalPiutang = 0;
+
+            renderDaftarSheet();
+            document.getElementById('pasteArea').focus();
+        }
+
+        function renderDaftarSheet() {
+            const listContainer = document.getElementById('sheetList');
+            const btnDownload = document.getElementById('btnDownloadSemua');
+            const emptyMsg = document.getElementById('emptyStateMsg');
+
+            if(Object.keys(koleksiKategori).length === 0) {
+                if(emptyMsg) emptyMsg.style.display = 'block';
+                btnDownload.disabled = true;
+                btnDownload.className = "mt-4 w-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 opacity-50 cursor-not-allowed";
+                return;
+            }
+
+            if(emptyMsg) emptyMsg.style.display = 'none';
+            listContainer.innerHTML = "";
+
+            for (let kat in koleksiKategori) {
+                let badgeHTML = `<div class="bg-black/40 border border-slate-700 rounded-xl p-3 mb-2 animate-pop">
+                    <div class="flex items-center gap-2 mb-2 border-b border-slate-700 pb-2">
+                        <i data-lucide="folder-tree" class="w-4 h-4 text-emerald-400"></i>
+                        <span class="text-xs font-extrabold text-emerald-400 uppercase tracking-wider">Sheet: ${kat}</span>
+                    </div>
+                    <div class="space-y-1">`;
+                
+                koleksiKategori[kat].forEach((item, idx) => {
+                    badgeHTML += `
+                        <div class="flex justify-between items-center pl-6 pr-2 py-1 hover:bg-white/5 rounded-md">
+                            <span class="text-[11px] text-slate-300 font-bold">▶ Rute ${item.rute} (Minggu ${item.minggu})</span>
+                            <button onclick="hapusRute('${kat}', ${idx})" class="text-slate-500 hover:text-rose-400 transition-colors">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>`;
+                });
+
+                badgeHTML += `</div></div>`;
+                listContainer.innerHTML += badgeHTML;
+            }
+            lucide.createIcons();
+
+            btnDownload.disabled = false;
+            btnDownload.className = "mt-4 w-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20 hover:-translate-y-0.5";
+        }
+
+        function hapusRute(kategori, index) {
+            koleksiKategori[kategori].splice(index, 1);
+            if (koleksiKategori[kategori].length === 0) {
+                delete koleksiKategori[kategori];
+            }
+            renderDaftarSheet();
+        }
+
+        // --- 3. EXPORT KE EXCEL DENGAN STYLING BERWARNA & GARIS (XLSX-JS-STYLE) ---
+        function exportSemuaKeExcel() {
+            if (Object.keys(koleksiKategori).length === 0) return;
+
+            const wb = XLSX.utils.book_new();
+            const bulan = document.getElementById('inputBulan').value.toUpperCase().replace(/\s+/g, '_') || "LAPORAN";
+
+            // DEFINISI GAYA (STYLES) UNTUK EXCEL
+            const borderThin = { style: "thin", color: { rgb: "000000" } };
+            const styleBorder = { top: borderThin, bottom: borderThin, left: borderThin, right: borderThin };
+
+            // Teks Biru, Background Biru Muda (Header & Total)
+            const styleHeaderTotal = {
+                font: { bold: true, color: { rgb: "0070C0" } }, // Warna font Biru Excel
+                fill: { fgColor: { rgb: "D9E1F2" } }, // Background biru muda
+                border: styleBorder,
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            const styleHeaderLeft = { ...styleHeaderTotal, alignment: { horizontal: "left", vertical: "center" } };
+            const styleDataLeft = { border: styleBorder, alignment: { horizontal: "left", vertical: "center" } };
+            const styleDataCenter = { border: styleBorder, alignment: { horizontal: "center", vertical: "center" } };
+            const styleDataRight = { border: styleBorder, alignment: { horizontal: "right", vertical: "center" } };
+            const styleTitle = { font: { bold: true, color: { rgb: "000000" }, sz: 12 }, alignment: { horizontal: "left" } };
+            
+            // Format Rupiah Akuntansi (0 jadi '-')
+            const formatRp = '_("Rp"* #,##0_);_("Rp"* \\(#,##0\\);_("Rp"* "-"_);_(@_)';
+
+            for (let kat in koleksiKategori) {
+                let wsData = [];
+                let merges = [];
+                let styledCells = []; // Menyimpan sel yang butuh di-styling
+                let currentRow = 0;
+
+                // Urutkan rute agar berjejer dari Rute 1, 2, 3...
+                koleksiKategori[kat].sort((a,b) => parseInt(a.rute) - parseInt(b.rute));
+
+                koleksiKategori[kat].forEach(routeItem => {
+                    // Judul Rute (Warna Hitam Biasa)
+                    wsData.push([routeItem.judulLengkap, "", "", "", "", ""]);
+                    merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 5 } });
+                    styledCells.push({ r: currentRow, c: 0, s: styleTitle });
+                    currentRow++;
+
+                    // Baris Kosong
+                    wsData.push(["", "", "", "", "", ""]);
+                    currentRow++;
+
+                    // Header Kolom Tabel (Warna Biru + Garis)
+                    wsData.push(["NO", "Nama Outlet", "1", "2", "3", "4"]);
+                    styledCells.push({ r: currentRow, c: 0, s: styleHeaderTotal }); // NO
+                    styledCells.push({ r: currentRow, c: 1, s: styleHeaderLeft });  // Nama Outlet
+                    styledCells.push({ r: currentRow, c: 2, s: styleHeaderTotal }); // 1
+                    styledCells.push({ r: currentRow, c: 3, s: styleHeaderTotal }); // 2
+                    styledCells.push({ r: currentRow, c: 4, s: styleHeaderTotal }); // 3
+                    styledCells.push({ r: currentRow, c: 5, s: styleHeaderTotal }); // 4
+                    currentRow++;
+
+                    // Data Tabel (Garis biasa)
+                    routeItem.data.forEach(row => {
+                        wsData.push(row);
+                        styledCells.push({ r: currentRow, c: 0, s: styleDataCenter }); // NO
+                        styledCells.push({ r: currentRow, c: 1, s: styleDataLeft });   // Outlet
+                        styledCells.push({ r: currentRow, c: 2, s: styleDataRight, z: formatRp }); // W1
+                        styledCells.push({ r: currentRow, c: 3, s: styleDataRight, z: formatRp }); // W2
+                        styledCells.push({ r: currentRow, c: 4, s: styleDataRight, z: formatRp }); // W3
+                        styledCells.push({ r: currentRow, c: 5, s: styleDataRight, z: formatRp }); // W4
+                        currentRow++;
+                    });
+
+                    // Baris Total (Warna Biru + Garis)
+                    let totalRow = ["", "TOTAL", 0, 0, 0, 0];
+                    if(routeItem.total > 0) totalRow[routeItem.minggu + 1] = routeItem.total;
+                    wsData.push(totalRow);
+                    merges.push({ s: { r: currentRow, c: 0 }, e: { r: currentRow, c: 1 } });
+                    
+                    styledCells.push({ r: currentRow, c: 0, s: styleHeaderTotal }); // Placeholder Empty
+                    styledCells.push({ r: currentRow, c: 1, s: styleHeaderTotal }); // TOTAL
+                    styledCells.push({ r: currentRow, c: 2, s: { ...styleHeaderTotal, alignment: { horizontal: "right" } }, z: formatRp });
+                    styledCells.push({ r: currentRow, c: 3, s: { ...styleHeaderTotal, alignment: { horizontal: "right" } }, z: formatRp });
+                    styledCells.push({ r: currentRow, c: 4, s: { ...styleHeaderTotal, alignment: { horizontal: "right" } }, z: formatRp });
+                    styledCells.push({ r: currentRow, c: 5, s: { ...styleHeaderTotal, alignment: { horizontal: "right" } }, z: formatRp });
+                    currentRow++;
+
+                    // Jeda antar rute
+                    wsData.push(["", "", "", "", "", ""]);
+                    currentRow++;
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                ws['!merges'] = merges;
+                ws['!cols'] = [{ wch: 5 }, { wch: 45 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+
+                // Terapkan Styling ke Sel Excel
+                styledCells.forEach(item => {
+                    let ref = XLSX.utils.encode_cell({r: item.r, c: item.c});
+                    if(!ws[ref]) ws[ref] = { t: 's', v: '' }; // Fallback
+                    ws[ref].s = item.s;
+                    if(item.z) ws[ref].z = item.z;
+                });
+
+                // Nama Sheet (Batas 30 karakter)
+                let finalSheetName = kat.substring(0, 30).replace(/[^a-zA-Z0-9 ]/g, "");
+                XLSX.utils.book_append_sheet(wb, ws, finalSheetName);
+            }
+            
+            // Download File
+            let safeFileName = `REKAP_PIUTANG_GABUNGAN_${bulan}.xlsx`;
+            XLSX.writeFile(wb, safeFileName);
+            
+            showModal(`Berhasil menggabungkan semua area dengan Format Warna ke dalam file:\n\n${safeFileName}`);
+        }
+        
+    </script>
+</body>
+</html>
