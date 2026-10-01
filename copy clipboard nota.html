@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nota Smart Collector</title>
+    <!-- Font Inter untuk tampilan modern -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Modern Apple-like Glassmorphism Theme */
+        :root {
+            --bg-base: #0f0f11;
+            --bg-gradient: radial-gradient(circle at top left, #1a1a24, #0f0f11 60%);
+            
+            /* Glass properties */
+            --glass-bg: rgba(30, 30, 35, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-blur: blur(24px);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --accent-color: #0a84ff;
+            --accent-hover: #0071e3;
+            --success-color: #30d158;
+            --warning-color: #ffd60a;
+            
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-pill: 9999px;
+            
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        body {
+            background: var(--bg-base);
+            background-image: var(--bg-gradient);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* Efek glow background samar */
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Decorative background elements */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -150px;
+            left: -150px;
+            width: 400px;
+            height: 400px;
+            background: rgba(10, 132, 255, 0.15);
+            filter: blur(100px);
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        /* --- Floating Pill Header --- */
+        .pill-header-container {
+            position: sticky;
+            top: 24px;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            margin-bottom: 40px;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        .pill-header {
+            background: rgba(25, 25, 30, 0.65);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            padding: 16px 32px;
+            border-radius: var(--radius-pill);
+            display: flex;
+            align-items: center;
+            
+            /* --- KODE TAMBAHAN UNTUK FULL WIDTH --- */
+            width: 100%; 
+            max-width: 1100px; /* Menyamakan dengan max-width .container */
+            justify-content: space-between; /* Tulisan di kiri, badge di kanan */
+            
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+        }
+
+        .pill-header h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+        }
+
+        .header-badge {
+            background: rgba(10, 132, 255, 0.2);
+            color: var(--accent-color);
+            padding: 4px 10px;
+            border-radius: var(--radius-pill);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* --- Main Layout --- */
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            padding: 0 20px 40px 20px;
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: 4fr 5fr;
+            gap: 32px;
+        }
+
+        @media (max-width: 850px) {
+            .container { grid-template-columns: 1fr; }
+        }
+
+        /* Glass Panel Base Class */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin: 0 0 20px 0;
+        }
+
+        /* --- Area Input --- */
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 100px; /* Stay fixed when scrolling lists */
+            height: fit-content;
+        }
+
+        textarea {
+            width: 100%;
+            height: 250px;
+            background: rgba(0, 0, 0, 0.5);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.5;
+            resize: vertical;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        textarea:focus { 
+            border-color: rgba(10, 132, 255, 0.5);
+            background: rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 0 4px rgba(10, 132, 255, 0.1);
+        }
+        
+        textarea::placeholder {
+            color: #555;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 14px 20px;
+            border-radius: var(--radius-pill);
+            font-family: var(--font-main);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover { 
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+        
+        button:active { transform: translateY(0); }
+
+        button.primary {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3);
+        }
+
+        button.primary:hover { 
+            background: var(--accent-hover); 
+            border-color: var(--accent-hover);
+        }
+
+        /* --- Area Hasil (Cards) --- */
+        .lists-section {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .nota-card {
+            background: rgba(20, 20, 25, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            margin-bottom: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nota-card:hover { 
+            transform: translateY(-4px); 
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+
+        .nota-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+
+        .outlet-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .outlet-name { 
+            font-weight: 600; 
+            font-size: 15px; 
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .status-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .matched { color: var(--text-primary); }
+        .matched .status-icon { background: var(--success-color); color: #000; }
+        
+        .unmatched { color: var(--warning-color); }
+        .unmatched .status-icon { background: var(--warning-color); color: #000; }
+
+        .nota-body {
+            font-size: 13px;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            max-height: 140px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            font-family: var(--font-mono);
+            background: rgba(0, 0, 0, 0.4);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px inset rgba(255, 255, 255, 0.05);
+            line-height: 1.6;
+        }
+
+        /* Custom Scrollbar for Textarea and Nota Body */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+        .time-badge {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-family: var(--font-mono);
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            padding: 40px 20px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: var(--radius-md);
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+        
+        .empty-icon { font-size: 24px; opacity: 0.5; }
+
+        /* --- Completed Cards Modifier --- */
+        .completed-card {
+            background: rgba(48, 209, 88, 0.05);
+            border: 1px dashed rgba(48, 209, 88, 0.3);
+            opacity: 0.8;
+        }
+        
+        .completed-card:hover { transform: none; box-shadow: none; opacity: 1;}
+        .completed-card .nota-body { max-height: 60px; overflow: hidden; opacity: 0.7;}
+        
+        .status-badge-done {
+            background: rgba(48, 209, 88, 0.2);
+            color: var(--success-color);
+            padding: 4px 12px;
+            border-radius: var(--radius-pill);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Pill Header -->
+    <div class="pill-header-container">
+        <div class="pill-header">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <h1>Nota Smart Collector</h1>
+            <span class="header-badge" id="counterBadge">0 Antrean</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Kolom Kiri: Input -->
+        <div>
+            <div class="glass-panel input-section">
+                <h2 class="section-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    Input Teks Nota
+                </h2>
+                <p class="section-subtitle">Tempel raw text dari web resmi di sini.</p>
+                
+                <textarea id="rawInput" placeholder="Contoh:&#10;Kepada : PT AMANAT JAYA TRANSPO…&#10;Alamat : Karangbawang..."></textarea>
+                
+                <div class="btn-group">
+                    <button onclick="pasteFromClipboard()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        Paste
+                    </button>
+                    <button class="primary" onclick="processNota()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        Ekstrak
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kolom Kanan: Hasil Antrean & Selesai -->
+        <div class="lists-section">
+            <div class="glass-panel">
+                <h2 class="section-title">⏳ Menunggu Disalin</h2>
+                <p class="section-subtitle">Nota yang sudah diproses dan siap disalin.</p>
+                <div id="pendingList">
+                    <div class="empty-state">
+                        <span class="empty-icon">📂</span>
+                        <span>Belum ada nota dalam antrean</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="background: rgba(30,30,35,0.2);">
+                <h2 class="section-title" style="color: var(--text-secondary)">✅ Selesai</h2>
+                <div id="completedList">
+                    <!-- Nota yang sudah di copy akan pindah kesini -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATABASE OUTLET ---
+        const masterDatabase = [
+            "AGUNG GUNAWAN KALIBENDA BNA (B)", "ALFA MOTOR KLAMPOK BNA (B)", "BANAFSHA MOTOR (B)",
+            "BUDHI GUNAWAN BNA (IB)", "CANDRA KENCANA MOTOR (B)", "CV ARIEXA MITRA JAYA (IB)",
+            "CV BANGKIT JAYA BNA (IB)", "CV BANGKIT MAKMUR ABADI BNA (IB)", "CV BARU BANGKIT BNA (IB)",
+            "CV BARU BANGKIT SEJAHTERA BNA (IB)", "CV BERKAH JAYA (IB)", "CV ENSI GROUP (IB)",
+            "CV INDAH SEJATI (IB)", "CV INTI KARYA NIAGA TEGAL (B)", "CV JATI LESTARI (IB)",
+            "CV KARYA PURABAYA CILONGOK (IB)", "CV KEJAWAR BANGKIT JAYAWOOD (IB)", "CV PUTRA SUGENG (IB)",
+            "CV RABIH ADITIYA SADAD (IB)", "CV RISKY SAKTI TRANS MANDIRI (IB)", "CV TANI JAYA (IB)",
+            "CV. KARYA PURABAYA (IB)", "CV. MAJU UTAMA DIESEL DIY (ID)", "DJOKO MOTOR (B)",
+            "HAMAM ALAT BERAT (IB)", "JAYA SENTOSA OTOSARANA PWT KIDUL (B)", "KRAKATAU INDAH (GUNUNG JATI) PWT SEL (B)",
+            "NEW TJM PWT UTARA (B)", "PABRIK BUSA (IC)", "PT ALBASIA CIPTA SEJAHTERA (IC)",
+            "PT AMANAT JAYA TRANSPORT ( IB )", "PT ARTA GRAHA INDOTAMA (IB)", "PT ARUD JAYA FARM MANDIRAJA (IB)",
+            "PT ASRIKIN PUTRA SEJATI (IB)", "PT BARU BANGKIT ABADI SEJAHTERA (IB)", "PT BATU ALAM SELATAN (IB)",
+            "PT BERKAH CAHAYA ASLI (IC)", "PT BERKAH LESTARI TRANSPORT (IB)", "PT BINTANG BARU MEGA RAYA (IB)",
+            "PT DUTA SARANA MUDA (IB)", "PT DWI TUNGGAL PUTRA PERTAMA PWT (B)", "PT GARUDA MITRA ABADI JAYA (IB)",
+            "PT HARAPAN JAYA ANUGERAH (B)", "PT MEKAR GEMILANG SEMESTA (IB)", "PT MITRA ANDALAN BETON (IB)",
+            "PT MUARA KAYU SENGON (IB)", "PT MUSI RAWAS PERKASA (IB)", "PT PIRUSA JAYA TRANS (IB)",
+            "PT PUNDI INDOKAYU INDUSTRI (IB)", "PT SINAR RIAU PERKASA PRIMA (IB)", "PT SURYA KARYA SETIABUDI (IT)",
+            "PT SURYA KUSUMA INDAH (IB)", "PT. BANGKIT KARYA (IB)", "PT. BANGUN PERSADA LOGISTIC (IB)",
+            "PT. BATU REJEKI SEMESTA (IB)", "PT. EKA TIMUR RAYA (IB)", "PT. JADI KUAT BERSAMA (IB)",
+            "PT. KRAKATAU INDAH (IB)", "PT. MITRA SEJAHTERA ARTHALESTARI (IB)", "PT. SATRIA BUANA PAMULA SAKTI (IB)",
+            "PT. SINAR TAMBANG ARTHALESTARI (IB)", "PT. VINOLI INTERNUSA INDAH (IB)", "ROMA MOTOR PWT(CV. PUTRA MANDIRI PERSADA) (B)",
+            "SANTOSA MOTOR KLAMPOK BNA (B)", "SAUDARA MOTOR KR.TENGAH BNA (B)", "SPBU 44.531.01 AJIBARANG (B)",
+            "SPBU 44.531.02 SUMPIUH (B)", "SPBU 44.531.11 MARGASANA (B)", "SPBU 44.531.28 KEDUNGPRING BMS (B)",
+            "SPBU 44.531.33 PURWANEGARA (B)", "SPBU 44.531.36", "SPBU 44.534.06 KARANGKOBAR BNA (B)",
+            "SUBUR BAN PWT SEL (B)", "UD JAYA ASLI PLAYWOOD (IC)"
+        ];
+
+        let pendingNotas = [];
+        let completedNotas = [];
+
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('rawInput').value = text;
+            } catch (err) {
+                alert("Gagal membaca clipboard. Izinkan akses pada browser.");
+            }
+        }
+
+        function autoCorrectOutlet(rawName) {
+            let cleanName = rawName.replace(/…/g, '').trim().toUpperCase();
+            for (let dbName of masterDatabase) {
+                if (dbName.toUpperCase().includes(cleanName) || cleanName.includes(dbName.toUpperCase())) {
+                    return { name: dbName, matched: true };
+                }
+            }
+            return { name: rawName, matched: false }; 
+        }
+
+        function processNota() {
+            const rawText = document.getElementById('rawInput').value.trim();
+            if (!rawText) return;
+
+            const kepadaRegex = /Kepada\s*:\s*(.*)/i;
+            const kepadaMatch = rawText.match(kepadaRegex);
+            
+            let extractedName = kepadaMatch ? kepadaMatch[1] : "Nama tidak ditemukan";
+            let correctedData = autoCorrectOutlet(extractedName);
+            
+            let finalOutputText = rawText;
+            if (kepadaMatch && correctedData.matched) {
+                finalOutputText = rawText.replace(kepadaRegex, `Kepada : ${correctedData.name}`);
+            }
+
+            const newNota = {
+                id: 'nota-' + Date.now(),
+                rawText: finalOutputText,
+                outletName: correctedData.name,
+                isMatched: correctedData.matched,
+                timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            };
+
+            pendingNotas.unshift(newNota);
+            document.getElementById('rawInput').value = ''; 
+            renderUI();
+        }
+
+        function copyAndMove(id) {
+            const notaIndex = pendingNotas.findIndex(n => n.id === id);
+            if (notaIndex > -1) {
+                const nota = pendingNotas[notaIndex];
+                
+                // Animasi tombol sebelum dicopy
+                const btn = document.getElementById(`btn-${id}`);
+                btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Tersalin!`;
+                btn.style.background = 'var(--success-color)';
+                btn.style.borderColor = 'var(--success-color)';
+                
+                setTimeout(() => {
+                    navigator.clipboard.writeText(nota.rawText).then(() => {
+                        pendingNotas.splice(notaIndex, 1);
+                        completedNotas.unshift(nota);
+                        renderUI();
+                    }).catch(err => {
+                        alert("Gagal menyalin teks.");
+                    });
+                }, 400); // Sedikit delay untuk efek visual
+            }
+        }
+
+        function renderUI() {
+            const pendingContainer = document.getElementById('pendingList');
+            const completedContainer = document.getElementById('completedList');
+            const counterBadge = document.getElementById('counterBadge');
+
+            // Update Counter di Header
+            counterBadge.textContent = `${pendingNotas.length} Antrean`;
+            if(pendingNotas.length > 0) {
+                counterBadge.style.background = 'rgba(48, 209, 88, 0.2)';
+                counterBadge.style.color = 'var(--success-color)';
+            } else {
+                counterBadge.style.background = 'rgba(10, 132, 255, 0.2)';
+                counterBadge.style.color = 'var(--accent-color)';
+            }
+
+            // Render Antrean
+            if (pendingNotas.length === 0) {
+                pendingContainer.innerHTML = `
+                    <div class="empty-state">
+                        <span class="empty-icon">✨</span>
+                        <span>Semua antrean telah disalin</span>
+                    </div>`;
+            } else {
+                pendingContainer.innerHTML = pendingNotas.map(nota => `
+                    <div class="nota-card" id="${nota.id}">
+                        <div class="nota-header">
+                            <div class="outlet-info ${nota.isMatched ? 'matched' : 'unmatched'}">
+                                <span class="outlet-name">
+                                    <span class="status-icon">${nota.isMatched ? '✓' : '!'}</span>
+                                    ${nota.outletName}
+                                </span>
+                            </div>
+                            <span class="time-badge">${nota.timestamp}</span>
+                        </div>
+                        <div class="nota-body">${nota.rawText}</div>
+                        <button id="btn-${nota.id}" class="primary" style="width: 100%;" onclick="copyAndMove('${nota.id}')">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Salin Teks
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            // Render Selesai
+            if (completedNotas.length === 0) {
+                completedContainer.innerHTML = `
+                    <div class="empty-state" style="border:none; background:transparent;">
+                        <span style="font-size:13px;">Belum ada nota yang diselesaikan.</span>
+                    </div>`;
+            } else {
+                completedContainer.innerHTML = completedNotas.map(nota => `
+                    <div class="nota-card completed-card">
+                        <div class="nota-header" style="border-bottom: 1px dashed rgba(255,255,255,0.05); padding-bottom: 12px;">
+                            <div class="outlet-info matched">
+                                <span class="outlet-name" style="color: var(--success-color);">
+                                    <span class="status-icon" style="background:var(--success-color)">✓</span>
+                                    ${nota.outletName}
+                                </span>
+                            </div>
+                            <span class="status-badge-done">Selesai</span>
+                        </div>
+                        <div class="nota-body">${nota.rawText}</div>
+                    </div>
+                `).join('');
+            }
+        }
+    </script>
+</body>
+</html>
