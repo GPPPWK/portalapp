@@ -630,7 +630,7 @@
         function tampilkanKeTabelHtml(data, jenis) {
             const tbody = document.getElementById(jenis === 'ya' ? 'bodyTabelYa' : 'bodyTabelTidak');
             tbody.innerHTML = ""; 
-
+        
             if (data.length === 0) {
                 tbody.innerHTML = `<tr><td colspan='7' class='px-6 py-12 text-center text-gray-500'>
                     <i class="fa-solid fa-folder-open text-4xl mb-3 text-gray-300"></i><br>
@@ -647,14 +647,18 @@
                     } else if (textStatusOri.includes("kirim") || textStatusOri.includes("sudah")) {
                         statusBadge = `<span class="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold"><i class="fa-solid fa-truck text-[10px] mr-1"></i>${row["Status Barang"]}</span>`;
                     }
-
+        
                     const kolomAkhir = jenis === 'ya' ? `<td class="px-6 py-4 text-gray-500 text-sm font-medium">${row["Info Pajak"]}</td>` : `<td class="px-6 py-4 text-red-500 text-sm font-medium"><i class="fa-solid fa-ban text-[10px] mr-1"></i>${row["Keterangan"]}</td>`;
-
+        
+                    // Membuat nomor nota menjadi hyperlink aktif hanya di tampilan web
+                    const noNota = row["No. Nota"];
+                    const linkNota = `<a href="https://lokal.gelora.net/print-nota-penjualan/${noNota}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline font-mono font-medium">${noNota} <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-0.5"></i></a>`;
+        
                     const tr = document.createElement("tr");
                     tr.className = jenis === 'ya' ? "hover:bg-green-50/50 transition-colors" : "hover:bg-red-50/50 transition-colors";
                     tr.innerHTML = `
                         <td class="px-6 py-4 font-semibold text-gray-900">${row["Nama Toko"]}</td>
-                        <td class="px-6 py-4 font-mono text-sm text-blue-600">${row["No. Nota"]}</td>
+                        <td class="px-6 py-4 font-mono text-sm">${linkNota}</td>
                         <td class="px-6 py-4 text-gray-600">${row["Tanggal"]}</td>
                         <td class="px-6 py-4">${row["Salesman"]}</td>
                         <td class="px-6 py-4">${statusBadge}</td>
