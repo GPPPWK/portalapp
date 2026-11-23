@@ -1,0 +1,2607 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Outlet File Manager</title>
+
+<style>
+:root{
+ --primary:#2563eb;
+ --green:#15803d;
+ --red:#dc2626;
+ --amber:#d97706;
+ --purple:#7c3aed;
+ --bg:#f4f7fb;
+ --text:#172033;
+ --muted:#64748b;
+ --border:#e2e8f0;
+ --white:#fff;
+}
+*{box-sizing:border-box}
+body{
+ margin:0;background:var(--bg);color:var(--text);
+ font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
+}
+.container{max-width:1550px;margin:auto;padding:24px}
+.header{
+ display:flex;justify-content:space-between;
+ align-items:center;gap:15px;margin-bottom:22px
+}
+.header h1{font-size:24px;margin:0}
+.header p{font-size:13px;color:var(--muted);margin:6px 0}
+.card{
+ background:white;border:1px solid var(--border);
+ border-radius:14px;padding:19px;margin-bottom:17px
+}
+.card-title{font-size:15px;font-weight:750;margin-bottom:15px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:17px}
+.stat{
+ background:white;border:1px solid var(--border);
+ border-radius:12px;padding:15px
+}
+.stat span{font-size:11px;color:var(--muted)}
+.stat strong{display:block;font-size:23px;margin-top:7px}
+.badge{
+ background:#dcfce7;color:#166534;
+ padding:7px 12px;border-radius:30px;
+ font-size:11px;font-weight:700
+}
+.db-info{
+ padding:13px;background:#f8fafc;
+ border:1px solid var(--border);border-radius:10px;
+ font-size:12px
+}
+.small{font-size:11px;color:var(--muted)}
+input,select,button{font:inherit}
+input[type=text],input[type=search],select{
+ width:100%;padding:10px 12px;border:1px solid var(--border);
+ border-radius:8px;background:white;outline:none;font-size:12px
+}
+input:focus,select:focus{
+ border-color:var(--primary);
+ box-shadow:0 0 0 3px #2563eb18
+}
+button{
+ cursor:pointer;padding:10px 13px;border-radius:8px;
+ border:1px solid var(--border);background:white;
+ font-size:12px;font-weight:700;transition:.15s
+}
+button:hover{background:#f1f5f9}
+button:disabled{opacity:.4;cursor:not-allowed}
+.primary{background:var(--primary);color:white;border-color:var(--primary)}
+.primary:hover{background:#1d4ed8}
+.success{background:var(--green);color:white;border-color:var(--green)}
+.success:hover{background:#166534}
+.danger{color:var(--red)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.dropzone{
+ padding:30px 15px;border:2px dashed #cbd5e1;
+ border-radius:12px;background:#f8fafc;
+ text-align:center;cursor:pointer;transition:.2s
+}
+.dropzone.active{background:#eff6ff;border-color:var(--primary)}
+.dropzone strong{display:block;margin:9px}
+.dropzone p{font-size:12px;color:var(--muted)}
+.dropzone .icon{font-size:30px}
+.filters{
+ display:grid;grid-template-columns:2fr 1fr 1fr 1fr;
+ gap:9px;margin-bottom:14px
+}
+.bulk{
+ display:grid;grid-template-columns:2fr 1fr auto;
+ gap:10px;align-items:end;padding:12px;
+ background:#f8fafc;border:1px solid var(--border);
+ border-radius:10px;margin-bottom:15px
+}
+.toolbar{
+ display:flex;justify-content:space-between;
+ align-items:center;gap:10px;flex-wrap:wrap;margin:15px 0
+}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:1120px}
+th{
+ text-align:left;background:#f1f5f9;padding:12px;
+ color:#64748b;font-size:10px;letter-spacing:.04em
+}
+td{padding:11px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:hover{background:#fafcff}
+.preview{
+ width:95px;height:95px;object-fit:cover;
+ border-radius:9px;background:#f1f5f9;
+ cursor:zoom-in;transition:.2s
+}
+.preview:hover{transform:scale(1.04)}
+.filename{font-size:11px;word-break:break-all;color:#334155}
+.newname{
+ font-size:11px;color:var(--green);
+ font-weight:750;word-break:break-all;max-width:250px
+}
+.input-outlet{min-width:190px}
+.input-number{min-width:140px}
+.input-type{min-width:105px}
+.valid{font-size:10px;color:var(--green);font-weight:700}
+.invalid{font-size:10px;color:#c2410c}
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+.footer{text-align:center;color:var(--muted);font-size:11px;padding:20px}
+.hidden{display:none!important}
+#progress{
+ height:7px;background:#e2e8f0;border-radius:20px;
+ overflow:hidden;display:none;margin-top:12px
+}
+#progressBar{height:100%;width:0;background:var(--primary)}
+@media(max-width:800px){
+ .container{padding:12px}
+ .grid,.filters,.bulk{grid-template-columns:1fr}
+ .stats{grid-template-columns:repeat(2,1fr)}
+ .header{align-items:flex-start;flex-direction:column}
+}
+
+/* ==================================
+   MODAL KLASIFIKASI OTOMATIS (CARD STACK + MIKROSKOP)
+================================== */
+.triage-overlay{
+ position:fixed;inset:0;z-index:9000;
+ background:rgba(15,23,42,.82);
+ backdrop-filter:blur(5px);
+ display:flex;align-items:center;justify-content:center;
+ padding:14px;overflow-y:auto
+}
+.triage-overlay.hidden{display:none!important}
+.triage-modal{
+ width:min(540px,100%);
+ background:#ffffff;
+ border-radius:20px;
+ box-shadow:0 25px 50px -12px rgba(0,0,0,.45);
+ padding:18px 20px 22px;
+ display:flex;flex-direction:column;gap:14px;
+ position:relative;margin:auto
+}
+.triage-header{
+ display:flex;justify-content:space-between;align-items:center;gap:10px;
+ border-bottom:1px solid var(--border);padding-bottom:10px
+}
+.triage-progress{
+ font-size:12px;font-weight:750;color:var(--primary);
+ background:#eff6ff;padding:5px 11px;border-radius:20px
+}
+.triage-filename{
+ font-size:11px;color:var(--muted);
+ max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.triage-stack-area{
+ position:relative;
+ width:100%;
+ height:310px;
+ display:flex;align-items:center;justify-content:center;
+ padding:12px 18px;
+ user-select:none
+}
+.triage-back-card{
+ position:absolute;
+ width:calc(100% - 54px);
+ height:282px;
+ border-radius:14px;
+ background:#cbd5e1;
+ border:2px solid #fff;
+ box-shadow:0 8px 20px rgba(0,0,0,.18);
+ object-fit:cover;
+ pointer-events:none;
+ transition:transform .25s ease, opacity .25s ease
+}
+.triage-back-2{
+ transform:rotate(-5.5deg) translate(-8px, 4px);
+ opacity:.75;z-index:1
+}
+.triage-back-1{
+ transform:rotate(4.5deg) translate(8px, 2px);
+ opacity:.9;z-index:2
+}
+.triage-front-card{
+ position:relative;z-index:3;
+ width:calc(100% - 44px);
+ height:286px;
+ border-radius:14px;
+ background:#0f172a;
+ border:3px solid #fff;
+ box-shadow:0 14px 30px rgba(15,23,42,.28);
+ overflow:hidden;
+ cursor:crosshair;
+ transition:transform .26s ease, opacity .26s ease, box-shadow .2s ease
+}
+.triage-front-card.microscope-active{
+ box-shadow:0 0 0 3px var(--primary), 0 18px 36px rgba(15,23,42,.38);
+}
+.triage-front-card.fly-left{
+ transform:translateX(-120%) rotate(-14deg);opacity:0
+}
+.triage-front-card.fly-right{
+ transform:translateX(120%) rotate(14deg);opacity:0
+}
+.triage-front-card.fly-up{
+ transform:translateY(-80%) scale(.92);opacity:0
+}
+.triage-front-card img{
+ position:absolute;
+ left:0;top:0;
+ transform-origin:0 0;
+ user-select:none;
+ -webkit-user-drag:none;
+ pointer-events:none;
+ will-change:transform
+}
+
+/* Cincin lensa & indikator mikroskop */
+.microscope-reticle{
+ position:absolute;
+ width:76px;height:76px;
+ border-radius:50%;
+ border:2px solid rgba(59,130,246,.85);
+ box-shadow:0 0 0 1px rgba(255,255,255,.55), inset 0 0 12px rgba(59,130,246,.15);
+ transform:translate(-50%,-50%);
+ pointer-events:none;
+ z-index:4;
+ display:none
+}
+.microscope-reticle::before,
+.microscope-reticle::after{
+ content:'';position:absolute;background:rgba(59,130,246,.7)
+}
+.microscope-reticle::before{
+ width:12px;height:1.5px;left:50%;top:50%;transform:translate(-50%,-50%)
+}
+.microscope-reticle::after{
+ width:1.5px;height:12px;left:50%;top:50%;transform:translate(-50%,-50%)
+}
+.triage-front-card.microscope-active .microscope-reticle{
+ display:block
+}
+
+.microscope-badge{
+ position:absolute;top:8px;left:8px;z-index:5;
+ background:rgba(15,23,42,.78);
+ color:#e2e8f0;
+ font-size:10px;font-weight:700;
+ padding:4px 9px;border-radius:20px;
+ pointer-events:none;
+ backdrop-filter:blur(4px);
+ border:1px solid rgba(255,255,255,.15)
+}
+.triage-front-card.microscope-active .microscope-badge{
+ background:rgba(37,99,235,.9);
+ color:#fff;
+ border-color:rgba(255,255,255,.35)
+}
+
+.triage-zoom-tools{
+ position:absolute;bottom:8px;right:8px;z-index:5;
+ display:flex;gap:4px;background:rgba(15,23,42,.78);
+ padding:4px;border-radius:8px;
+ cursor:default
+}
+.triage-zoom-tools button{
+ padding:4px 8px;font-size:11px;border:none;
+ background:rgba(255,255,255,.15);color:#fff;border-radius:6px
+}
+.triage-zoom-tools button:hover{background:rgba(255,255,255,.3)}
+
+/* Form tengah bawah foto */
+.triage-center-form{
+ display:flex;flex-direction:column;gap:10px;
+ max-width:420px;width:100%;margin:0 auto;
+ text-align:center
+}
+.triage-field-group{
+ text-align:left;position:relative
+}
+.triage-field-header{
+ display:flex;justify-content:space-between;align-items:center;
+ margin-bottom:4px
+}
+.triage-field-header label{
+ font-size:11px;font-weight:700;color:var(--text)
+}
+.triage-quick-fill{
+ font-size:10px;color:var(--primary);background:#eff6ff;
+ border:none;padding:2px 8px;border-radius:12px;font-weight:700
+}
+.triage-quick-fill:hover{background:#dbeafe}
+
+/* Custom Searchable Dropdown Outlet */
+.combo-wrap{position:relative;width:100%}
+.combo-input{
+ padding-right:34px !important;
+ font-weight:600;
+ border:1.5px solid #cbd5e1 !important;
+ background:#f8fafc !important
+}
+.combo-input:focus{
+ background:#fff !important;
+ border-color:var(--primary) !important
+}
+.combo-arrow{
+ position:absolute;right:4px;top:50%;transform:translateY(-50%);
+ border:none;background:transparent;color:var(--muted);
+ padding:6px 8px;font-size:11px
+}
+.combo-arrow:hover{background:transparent;color:var(--text)}
+.combo-list{
+ position:absolute;left:0;right:0;top:calc(100% + 4px);
+ max-height:190px;overflow-y:auto;
+ background:#fff;border:1px solid #cbd5e1;
+ border-radius:10px;box-shadow:0 12px 28px rgba(15,23,42,.18);
+ z-index:50;text-align:left
+}
+.combo-item{
+ padding:8px 12px;font-size:12px;cursor:pointer;
+ border-bottom:1px solid #f1f5f9
+}
+.combo-item:last-child{border-bottom:none}
+.combo-item:hover,.combo-item.active{
+ background:#eff6ff;color:var(--primary);font-weight:700
+}
+.combo-empty{
+ padding:10px 12px;font-size:11px;color:var(--muted);text-align:center
+}
+
+.triage-number-row{
+ display:flex;gap:8px;align-items:center
+}
+.triage-number-input{
+ text-align:center;font-size:17px !important;font-weight:800;
+ letter-spacing:3px;text-transform:uppercase;
+ border:1.5px solid #cbd5e1 !important;
+ background:#f8fafc !important
+}
+.triage-number-input:placeholder-shown{
+ font-size:12px !important;
+ font-weight:500;
+ letter-spacing:normal;
+ text-transform:none
+}
+.triage-number-input:focus{
+ background:#fff !important;border-color:var(--primary) !important
+}
+.triage-last4-badge{
+ white-space:nowrap;font-size:11px;font-weight:750;
+ padding:9px 11px;border-radius:8px;
+ background:#f1f5f9;color:var(--muted);border:1px solid var(--border)
+}
+.triage-last4-badge.ok{
+ background:#dcfce7;color:#166534;border-color:#86efac
+}
+.triage-preview-name{
+ font-size:11px;font-weight:700;color:var(--green);
+ background:#f0fdf4;border:1px dashed #86efac;
+ padding:6px 10px;border-radius:8px;word-break:break-all
+}
+.triage-msg{
+ font-size:11px;color:var(--red);font-weight:600;min-height:15px
+}
+
+/* Tombol Kiri (SJ), Tengah (MUTASI), Kanan (NOTA) */
+.triage-actions{
+ display:grid;
+ grid-template-columns:1fr 1fr 1fr;
+ gap:10px;
+ margin-top:2px
+}
+.btn-triage{
+ padding:13px 10px;
+ border-radius:12px;
+ font-size:13px;
+ font-weight:800;
+ letter-spacing:.03em;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:2px;border:2px solid transparent;
+ box-shadow:0 4px 10px rgba(0,0,0,.06)
+}
+.btn-triage small{font-size:10px;font-weight:600;opacity:.85}
+.btn-sj{
+ background:#eff6ff;color:#1d4ed8;border-color:#93c5fd
+}
+.btn-sj:hover,.btn-sj.selected{
+ background:#2563eb;color:#fff;border-color:#1d4ed8
+}
+.btn-mutasi{
+ background:#f5f3ff;color:#6d28d9;border-color:#c4b5fd
+}
+.btn-mutasi:hover,.btn-mutasi.selected{
+ background:#7c3aed;color:#fff;border-color:#6d28d9
+}
+.btn-nota{
+ background:#f0fdf4;color:#15803d;border-color:#86efac
+}
+.btn-nota:hover,.btn-nota.selected{
+ background:#16a34a;color:#fff;border-color:#15803d
+}
+
+/* ==================================
+   FOTO VIEWER
+================================== */
+.viewer-overlay{
+ position:fixed;inset:0;z-index:99999;
+ background:rgba(8,15,30,.94);
+ display:flex;align-items:center;justify-content:center;
+ padding:12px
+}
+.viewer-overlay.hidden{display:none!important}
+.viewer-panel{
+ width:min(1450px,99vw);height:95vh;
+ background:white;border-radius:13px;
+ overflow:hidden;display:flex;flex-direction:column
+}
+.viewer-toolbar{
+ display:flex;justify-content:space-between;
+ align-items:center;gap:12px;padding:12px 16px;
+ border-bottom:1px solid var(--border)
+}
+.viewer-title{min-width:0}
+.viewer-title strong{
+ font-size:13px;display:block;overflow-wrap:anywhere
+}
+.viewer-title small{
+ font-size:11px;color:var(--muted)
+}
+.viewer-controls{
+ display:flex;gap:5px;flex-wrap:wrap;align-items:center
+}
+.viewer-controls button{min-width:37px}
+#zoomLevel{
+ min-width:52px;text-align:center;font-size:11px;font-weight:750
+}
+.viewer-stage{
+ flex:1;min-height:0;position:relative;
+ overflow:hidden;background:#101827;
+ display:flex;align-items:center;justify-content:center;
+ cursor:grab;touch-action:none
+}
+.viewer-stage.dragging{cursor:grabbing}
+#viewerImage{
+ max-width:100%;max-height:100%;
+ width:auto;height:auto;object-fit:contain;
+ transform-origin:center center;
+ user-select:none;-webkit-user-drag:none;
+ pointer-events:none;will-change:transform
+}
+.viewer-footer{
+ padding:11px;text-align:center;
+ font-size:11px;color:var(--muted);
+ border-top:1px solid var(--border)
+}
+@media(max-width:650px){
+ .viewer-panel{height:97vh;width:100%}
+ .viewer-toolbar{align-items:flex-start;flex-direction:column}
+ .triage-stack-area{height:250px}
+ .triage-back-card,.triage-front-card{height:230px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<header class="header">
+ <div>
+  <h1>Outlet File Manager</h1>
+  <p>Filter, klasifikasi, dan rename Foto Nota, Surat Jalan & Mutasi</p>
+ </div>
+ <span class="badge">LOCAL OFFLINE PROCESSING</span>
+</header>
+
+<!-- DATABASE -->
+<section class="card">
+ <div class="card-title">01. Database Outlet</div>
+
+ <div class="grid">
+  <div class="db-info">
+   <strong id="dbCount">Memuat database...</strong>
+   <p class="small">Database outlet bawaan dari DATABASE OUTLET.pdf</p>
+  </div>
+
+  <div class="db-info">
+   <strong id="dbStatus">Database aktif</strong>
+   <p class="small">Database tersimpan otomatis di browser.</p>
+   <div class="row">
+    <button id="exportDB">Export Database</button>
+    <button id="importDB">Import TXT / CSV</button>
+    <button id="resetDB" class="danger">Reset Database</button>
+   </div>
+   <input type="file" id="dbInput" accept=".txt,.csv" hidden>
+  </div>
+ </div>
+</section>
+
+<!-- IMPORT -->
+<section class="card">
+ <div class="card-title">02. Import Foto</div>
+
+ <div class="dropzone" id="dropzone">
+  <div class="icon">📁</div>
+  <strong>Drag & Drop foto ke sini</strong>
+  <p>Import banyak foto sekaligus atau satu folder (otomatis buka modal pengisian).</p>
+  <button class="primary" id="selectFiles">Pilih Banyak Foto</button>
+ </div>
+
+ <div class="row" style="margin-top:12px">
+  <button id="selectFolder">Pilih Folder</button>
+  <button id="openQuickModal" class="primary">Buka Modal Input Cepat</button>
+  <button id="clearFiles" class="danger">Hapus Semua Foto</button>
+  <span class="small">JPG, JPEG, PNG, WEBP, GIF, BMP, HEIC</span>
+ </div>
+
+ <input type="file" id="fileInput"
+  accept="image/*,.heic,.heif" multiple hidden>
+
+ <input type="file" id="folderInput"
+  accept="image/*,.heic,.heif"
+  webkitdirectory multiple hidden>
+</section>
+
+<!-- STATS -->
+<section class="stats">
+ <div class="stat"><span>Total Foto</span><strong id="totalCount">0</strong></div>
+ <div class="stat"><span>Hasil Filter</span><strong id="filterCount">0</strong></div>
+ <div class="stat"><span>Siap Rename</span><strong id="readyCount">0</strong></div>
+ <div class="stat"><span>Belum Lengkap</span><strong id="pendingCount">0</strong></div>
+</section>
+
+<!-- FILTER -->
+<section class="card">
+ <div class="card-title">03. Filter & Rename Foto</div>
+
+ <div class="filters">
+  <input type="search" id="search" placeholder="Cari nama file atau outlet...">
+
+  <select id="typeFilter">
+   <option value="all">Semua Jenis</option>
+   <option value="NOTA">NOTA</option>
+   <option value="SJ">SURAT JALAN</option>
+   <option value="MUTASI">MUTASI</option>
+   <option value="none">Belum Ditentukan</option>
+  </select>
+
+  <select id="statusFilter">
+   <option value="all">Semua Status</option>
+   <option value="ready">Siap Rename</option>
+   <option value="pending">Belum Lengkap</option>
+  </select>
+
+  <select id="sortFilter">
+   <option value="name">Urut Nama File</option>
+   <option value="outlet">Urut Outlet</option>
+  </select>
+ </div>
+
+ <div class="bulk">
+  <div>
+   <label class="small">Terapkan Outlet ke hasil filter</label>
+   <input type="text" id="bulkOutlet"
+    list="outletOptions" placeholder="Cari nama outlet...">
+  </div>
+  <div>
+   <label class="small">Jenis Dokumen</label>
+   <select id="bulkType">
+    <option value="">Tidak diubah</option>
+    <option value="NOTA">NOTA</option>
+    <option value="SJ">SJ</option>
+    <option value="MUTASI">MUTASI</option>
+   </select>
+  </div>
+  <button class="primary" id="applyBulk">Terapkan ke Filter</button>
+ </div>
+
+ <datalist id="outletOptions"></datalist>
+
+ <div class="toolbar">
+  <span class="small" id="resultLabel">Belum ada foto.</span>
+  <div class="row">
+   <button id="selectVisible">Pilih Semua Hasil Filter</button>
+   <button id="unselectAll">Batalkan Pilihan</button>
+   <button class="success" id="downloadSelected">Download ZIP Pilihan</button>
+  </div>
+ </div>
+
+ <div class="table-wrap">
+  <table>
+   <thead>
+    <tr>
+     <th><input type="checkbox" id="masterCheck"></th>
+     <th>Foto</th>
+     <th>File Asli</th>
+     <th>Nama Outlet</th>
+     <th>Jenis</th>
+     <th>Nomor Dokumen</th>
+     <th>Nama Baru</th>
+     <th>Aksi</th>
+    </tr>
+   </thead>
+   <tbody id="fileTable">
+    <tr><td colspan="8"><div class="empty">Belum ada foto.</div></td></tr>
+   </tbody>
+  </table>
+ </div>
+
+ <div id="progress"><div id="progressBar"></div></div>
+
+ <div class="toolbar">
+  <div class="row">
+   <button class="success" id="downloadFiltered">Download ZIP Hasil Filter</button>
+   <button id="exportCSV">Export Rekap CSV</button>
+  </div>
+  <span class="small">File asli tidak diubah atau ditimpa.</span>
+ </div>
+</section>
+
+<div class="footer">
+ Outlet File Manager · Offline Edition · Local Browser Processing
+</div>
+
+</div>
+
+<!-- ==================================
+     MODAL KLASIFIKASI OTOMATIS (CARD STACK + MIKROSKOP)
+================================== -->
+<div id="triageModal" class="triage-overlay hidden">
+ <div class="triage-modal">
+
+  <div class="triage-header">
+   <span id="triageCounter" class="triage-progress">Foto 1 dari 1</span>
+   <span id="triageFilename" class="triage-filename">nama_file.jpg</span>
+   <div class="row" style="gap:6px">
+    <button type="button" id="triageSkip" style="padding:6px 10px;font-size:11px">Lewati</button>
+    <button type="button" id="triageClose" class="danger" style="padding:6px 10px;font-size:11px">✕ Tutup</button>
+   </div>
+  </div>
+
+  <!-- Tumpukan Kartu Foto + Mikroskop Otomatis -->
+  <div class="triage-stack-area">
+   <img id="triageBack2" class="triage-back-card triage-back-2 hidden" src="" alt="">
+   <img id="triageBack1" class="triage-back-card triage-back-1 hidden" src="" alt="">
+   <div id="triageFrontCard" class="triage-front-card" title="Arahkan kursor untuk mikroskop zoom · Scroll untuk atur pembesaran · Klik untuk layar penuh">
+    <span id="microscopeBadge" class="microscope-badge">🔬 Arahkan kursor untuk zoom</span>
+    <div id="microscopeReticle" class="microscope-reticle"></div>
+    <img id="triageImage" src="" alt="Preview Dokumen">
+    <div class="triage-zoom-tools">
+     <button type="button" id="triageZoomOut" title="Perkecil Pembesaran Mikroskop">−</button>
+     <button type="button" id="triageZoomReset" title="Reset Pembesaran (260%)">100%</button>
+     <button type="button" id="triageZoomIn" title="Perbesar Pembesaran Mikroskop">+</button>
+     <button type="button" id="triageFullZoom" title="Buka Layar Penuh">⛶</button>
+    </div>
+   </div>
+  </div>
+
+  <!-- Bagian Tengah Bawah Foto: Dropdown Database Outlet & Form 4 Terakhir -->
+  <div class="triage-center-form">
+   <div class="triage-field-group">
+    <div class="triage-field-header">
+     <label for="triageOutletInput">Database Outlet</label>
+     <button type="button" id="triageUsePrevOutlet" class="triage-quick-fill hidden">Sama seperti sebelumnya</button>
+    </div>
+    <div class="combo-wrap" id="triageComboWrap">
+     <input type="text" id="triageOutletInput" class="combo-input"
+      placeholder="Pilih atau ketik nama outlet..." autocomplete="off">
+     <button type="button" id="triageOutletToggle" class="combo-arrow" tabindex="-1">▼</button>
+     <div id="triageOutletList" class="combo-list hidden"></div>
+    </div>
+   </div>
+
+   <div class="triage-field-group">
+    <div class="triage-field-header">
+     <label for="triageNumberInput">Nomor Dokumen (4 Karakter Terakhir SJ / NOTA / MUTASI)</label>
+    </div>
+    <div class="triage-number-row">
+     <input type="text" id="triageNumberInput" class="triage-number-input"
+      placeholder="4 karakter terakhir (misal: 8613)" autocomplete="off">
+     <span id="triageLast4Badge" class="triage-last4-badge">0 / 4</span>
+    </div>
+   </div>
+
+   <div id="triagePreviewName" class="triage-preview-name hidden"></div>
+   <div id="triageMsg" class="triage-msg"></div>
+  </div>
+
+  <!-- Tombol Kiri: SJ | Tengah: MUTASI | Kanan: NOTA -->
+  <div class="triage-actions">
+   <button type="button" id="btnChooseSJ" class="btn-triage btn-sj">
+    <span>← SJ</span>
+    <small>Surat Jalan</small>
+   </button>
+   <button type="button" id="btnChooseMutasi" class="btn-triage btn-mutasi">
+    <span>MUTASI</span>
+    <small>Dokumen Mutasi</small>
+   </button>
+   <button type="button" id="btnChooseNota" class="btn-triage btn-nota">
+    <span>NOTA →</span>
+    <small>Nota Penjualan</small>
+   </button>
+  </div>
+
+ </div>
+</div>
+
+<!-- IMAGE VIEWER -->
+<div id="imageViewer" class="viewer-overlay hidden">
+ <div class="viewer-panel">
+
+  <div class="viewer-toolbar">
+   <div class="viewer-title">
+    <strong id="viewerTitle">Preview Foto</strong>
+    <small>Perbesar, perkecil, dan geser foto untuk membaca nomor.</small>
+   </div>
+
+   <div class="viewer-controls">
+    <button id="zoomOut">−</button>
+    <span id="zoomLevel">100%</span>
+    <button id="zoomIn">+</button>
+    <button id="zoomReset">Reset</button>
+    <button id="zoomClose" class="danger">✕ Tutup</button>
+   </div>
+  </div>
+
+  <div id="viewerStage" class="viewer-stage">
+   <img id="viewerImage" src="" alt="Preview dokumen">
+  </div>
+
+  <div class="viewer-footer">
+   Scroll mouse untuk zoom · Drag untuk menggeser · Double click untuk zoom 200% · ESC untuk tutup
+  </div>
+
+ </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+// =================================================
+// 1. DATABASE OUTLET
+// Sumber: DATABASE OUTLET.pdf, bagian nama_outlet.
+// =================================================
+
+const DEFAULT_DATABASE = `
+A'EP MOTOR (B)
+ACHMADI MOTOR BNA (B)
+ADITYO TRANS (IC)
+AGUNG AKINDO PWT (B)
+AGUNG GUNAWAN KALIBENDA BNA (B)
+AGUSTIN ANGELA KALIBENDA BNA (IB)
+AJI DIESEL AJIBARANG (B)
+AJI MOTOR KR.LEWAS (B)
+ALFA MOTOR KLAMPOK BNA (B)
+ALFAMAS WANGON (B)
+ALFIN CAR SERVIS SUMBANG BMS (B)
+ALI POJOK MOTOR MANDIRAJA BNA (B)
+AM JAYA MOTOR PATIKRAJA (B)
+AMIN MOTOR BUNTU BMS (B)
+ANDROMEDA PUTRA MOTOR PWT (B)
+ANUGERAH JAYA (B)
+ANUGRAH JAYA MOTOR PWT (B)
+ANUGRAH MOTOR KEJAWAR BMS (B)
+ANYAR MOTOR BNA (B)
+AP 07 (B)
+ARENA MOTOR PWT SELATAN (B)
+ARIS SUMBER LUMAS MERSI PWT (B)
+ARIYANTO MOTOR JATILAWANG (B)
+ARUM SARI AUTO CARE (B)
+ARWANA MOTOR KR.RAU BMS (B)
+ASIYAH MOTOR
+ASSYFA MOTOR 3 MANDIRAJA BNA (B)
+ATENK BODY FARIASI (B)
+ATMAJAYA MOTOR RAKIT BNA (B)
+BAHTERA MOTOR BEDAGAS
+BANAFSHA MOTOR (B)
+BANGUN MOTOR WANADADI BNA (B)
+BANYUMAS TRANS (IB)
+BAPAK SUPARNO SOKARAJA (IB)
+BAYU MOTOR KR.LEWAS (B)
+BEDHIL MOTOR PRIGI SIGALUH BNA (B)
+BENGKEL 33 KERTAYASA BNA (B)
+BENGKEL 88 (B)
+BENGKEL LSM KR.LEWAS (B)
+BENGKEL MOBIL SR CILONGOK (B)
+BENGKEL RAHMAT WANGON (B)
+BENGKEL SUYITNO KARANGKOBAR (B)
+BENGKEL TOSENG
+BENGKEL WONO MOTOR (B)
+BERKAH JAYA MOBIL KEBASEN (B)
+BERKAH MAKMUR KEDUNGUTER BMS (B)
+BERKAH MOTOR (B)
+BERLIAN MOTOR (B)
+BINTANG JAYA MOTOR PATIKRAJA (B)
+BINTANG MOTOR WSB (B)
+BINTANG NUSANTARA MOTOR BAWANG BNA (B)
+BINTANG PUTRA AJIBARANG (B)
+BINTANG SEJAHTERA MOTOR CIAMIS (B)
+BINTANG TEKNIK SUMPIUH (B)
+BJB MOTOR PWT (B)
+BOB JAYA (B)
+BORNEO MOTOR (B)
+BP HANNY HANDOKO RIJADI (IC)
+BP NURWAHYUDI
+BP SUGENG (IC)
+BP SUYATNO (IC)
+BP WARTOYO (IC)
+BP. HANNY HANDOKO (IC)
+BP. MUSTAKIM CLP (IC)
+BRILLIANT MOTOR (B)
+BUDHI GUNAWAN BNA (IB)
+BUDIYANTO (IB)
+BUMI ASIH MOTOR MANDIRAJA BNA (B)
+CAHAYA MOTOR AJIBARANG (B)
+CAHAYA MOTOR BOBOTSARI PBG (B)
+CAHAYA MOTOR PUNGGELAN BNA (B)
+CANDRA KENCANA MOTOR (B)
+CANDRA MOTOR BNA (B)
+CENTRAL OLI (B)
+CHN MOTOR SUSUKAN BNA (B)
+CV ANUGERAH KARYA MANDIRI (IC)
+CV ARDI PURNAMA JAYA (IC)
+CV ARIEXA MITRA JAYA (IB)
+CV BANGKIT JAYA BNA (IB)
+CV BANGKIT MAKMUR ABADI BNA (IB)
+CV BANGUN BUMI SEJAHTERA (IB)
+CV BARU BANGKIT BNA (IB)
+CV BARU BANGKIT SEJAHTERA BNA (IB)
+CV BERKAH JAYA (IB)
+CV BERSAMA JAYA (IC)
+CV BUNTON PASIRI PRAKOSO (IC)
+CV CAHAYA SAMUDRA (IC)
+CV ENSI GROUP (IB)
+CV ERSYNIAGATAMA (IC)
+CV GELORA TRI TUNGGAL (IB)
+CV GIAT ALAM SEJAHTERA ( IC )
+CV HIU PERKASA ILHAMMI (IC)
+CV INDAH SEJATI (IB)
+CV INTI KARYA NIAGA TEGAL (B)
+CV JATI LESTARI (IB)
+CV JAYA KUSUMA (IB)
+CV JAYA PERSADA MANDIRI (IB)
+CV KARYA PURABAYA CILONGOK (IB)
+CV KEJAWAR BANGKIT JAYAWOOD (IB)
+CV MAKMUR BATU GUNUNG (IB)
+CV MAKMUR KARYA ABADI (IC)
+CV MEGA BUANA (IB)
+CV MITRA PESONA PLYWOOD (IC)
+CV MURIA AGUNG CAKRA PRATAMA (IC)
+CV NAGA LIAR ALAMINDO (IB)
+CV PAMUJI (IC)
+CV PUTRA SUGENG (IB)
+CV RABIH ADITIYA SADAD (IB)
+CV RAGIL JAYA (IB)
+CV RANDOAN (IC)
+CV RISKY SAKTI TRANS MANDIRI (IB)
+CV SAHABAT TRANS (IC)
+CV SUBUR LANCAR SENTOSA ( IC )
+CV SUMBER INTI BAJA
+CV TANI JAYA (IB)
+CV VAN DYDAR TYAS KUSUMA (IC)
+CV WIJAYA NIAGA BAKTI (IC)
+CV. ALAM JAYA MAKMUR (IC)
+CV. KARYA BARU (IC)
+CV. KARYA PURABAYA (IB)
+CV. KONJAYA BERSAMA (IB)
+CV. LISNA JAYA (IB)
+CV. MAJU UTAMA DIESEL DIY (ID)
+CV. MANDIRI RIZKY RANGGA TEKNIK BETON (MRRT BETON) (IB)
+CV. RUKUN KARYA JAYA PRIMA (IB)
+CV. SATRIA PUTRA SEJAHTERA (IC)
+DANTAMIX KBM (C)
+DD AUTO SERVICE (B)
+DINO MOTOR RAKIT BNA (B)
+DIPA MOTOR SIGALUH BNA (B)
+DJAYA MOTOR
+DJOKO MOTOR (B)
+DJONG JAVA SAPURAN (IB)
+DJUN GONDRONG KR.LEWAS (B)
+DNS MOTOR (B)
+DUTA MOTOR BUMIAYU (B)
+DWI JAYA MOTOR (B)
+DWIJAYA SENTRA SARANA (C)
+EKO BANYUMAS BABAWOPA (B)
+ENDURO EXPRESS (NITROGEN) KR.BAWANG PWT (B)
+ENDURO EXPRESS ERIK MOTOR (B)
+ENDURO EXPRESS KALIERANG (B)
+ENGGAL JAYA KUTABANJAR BNA (B)
+ER JAYA KALIBAGOR BMS (B)
+EXSIST MOTOR (B)
+FADILA MOTOR JATILAWANG (B)
+FELLIX MOTOR (B)
+Fixcar mobil (B)
+FIZA MOTOR (B)
+GADING MOTOR (B)
+GANDA ASIH (IB)
+GARUDA MOTOR WANGON BMS (B)
+GIGIH PWT (B)
+GODEG MOTOR SUMPIUH (B)
+GUNAWAN MOTOR PBG (B)
+GUNUNG SLAMET RAYA TELUK (B)
+HAKONE MOTOR
+HAMAM ALAT BERAT (IB)
+HARMONI BAN CILONGOK (B)
+HARYANTO WSB (B)
+HIDUP BARU MOTOR PWT (B)
+ILHAM KAPAL (IC)
+ILHAM MOTOR BNA (B)
+INDAH MOTOR KALIMANDI (B)
+INTAN SPOORING WANGON (B)
+JALINAN MOTOR WSB (B)
+JATI KUSUMA TEKNIK (B)
+JAYA ABADI JATILAWANG (B)
+JAYA MOTOR PURWOKERTO (B)
+JAYA MOTOR SOKARAJA
+JAYA SENTOSA OTOSARANA PWT KIDUL (B)
+JEMPOL MULIA JAYA UTAMA KBM (IC)
+KARTA MOTOR SUSUKAN BNA (B)
+KARUNIA BANYUMAS (B)
+KARUNIA JAYA MOTOR (B)
+KARUNIA MOTOR PWT KULON (B)
+KARYA MANDIRI MOTOR GUMIWANG (B)
+KELANA MOTOR (B)
+KETAPANG MOTOR MADUKARA BNA (B)
+KHANIKA MOTOR (B)
+KHARISMA MOTOR (B)
+KHENDI MOTOR KARANGKOBAR BNA (B)
+KIKI MOTOR RM (B)
+KING MOTOR MANDIRAJA (B)
+KITONO BNA (B)
+KONDANG MAKMUR PWT TIMUR (B)
+KONDANG MOTOR (BARU MOTOR) PWT SEL (B)
+KRAKATAU INDAH (GUNUNG JATI) PWT SEL (B)
+KURNIA MOTOR 2 MANDIRAJA BNA (B)
+KURNIA MOTOR BATUR (B)
+KURNIA MOTOR SOKARAJA BMS (B)
+LANCAR JAYA BNA (B)
+LANGGANAN MOTOR CIAMIS (B)
+LANGGENG JAYA MOTOR (B)
+LANGGENG MOTOR (B)
+LANGGENG MULYO (B)
+LARIS MOTOR SOKARAJA (B)
+LESTARI MOTOR BANJARNEGARA (B)
+LESTARI MOTOR SUMINGKIR (B)
+LESTARI MUDA (IB)
+LSP MOTOR (B)
+MAHENDRA MOBIL KEJAWAR BMS (B)
+MAHKOTA JAYA TRANS (IC)
+MAJU JAYA (B)
+MAJU MOTOR BANJARNEGARA (B)
+MAKMUR JAYA SOKARAJA (B)
+MAKMUR MOTOR KR.KOBAR
+MALEBER MOTOR CIAMIS (B)
+MALIHA ONE STOP
+MANDIRI DIESEL
+MANDIRI JAYA MOTOR (B)
+MANDIRI MOTOR LENGKONG (B)
+MANDIRI MOTOR WANADADI BNA (B)
+MARDI TANI (B)
+MARGA JAYA MOTOR (B)
+MATA AIR MOTOR BATURADEN (B)
+MBAH DJO MOTOR (B)
+MEKAR JAYA MOTOR (B)
+MEKAR JAYA SENTOSA PBG (B)
+MELIN MAKMUR (B)
+MELIN MAKMUR (IB)
+MERDEKA MOTOR CIAMIS (B)
+MERDEKA MOTOR WANGON (B)
+MILYONO MOTOR KALIBAGOR BMS (B)
+MIRAH REJEKI BANJARPATROMAN (B)
+MITRA KAKUNG PWT SEL (B)
+MONDE ALAT BERAT (IC)
+MR MOTOR CILONGOK (B)
+MUDA MOTOR (B)
+MUKTI SADEWO TAMBAK BMS (B)
+MULIA JAYA TEKNIK
+MUNCUL JAYA MOTOR BANJARSARI (B)
+MUSLIHUDIN (MUS) BABAWOPA
+MUSTIKA MOTOR PWT (B)
+NADA VARIASI SUMPIUH (B)
+NANDA OB SOKARAJA (B)
+NEW AGUNG KRANJI PWT (B)
+NEW GUNAWAN MOTOR PBG (B)
+NEW PANDA (B)
+NEW PURWO MOTOR PURWONEGORO BNA (B)
+NEW SAMIJAYA PWT SEL (B)
+NEW TJM PWT UTARA (B)
+NUSANTARA MOTOR PWT (B)
+OFFICE PURWOKERTO (B)
+OFFICE WONOSOBO (B)
+OKE JAYA (B)
+OPTIMAX MOTOWORLD (B)
+ORBIT MOTOR (B)
+OTOKITS WONOSOBO (B)
+PABRIK BUSA (IC)
+PAK WILY KARANGRAU BMS (B)
+PALAPA MOTOR PWT SEL (B)
+PANDA KARANGLEWAS (B)
+PASAMA MOTOR BNA (B)
+PASINDITO BAROKAH MANDIRI
+PE. BUDI DHARMA (IC)
+PEMALANG JAYA PWT SEL (B)
+PERWIRA MOTOR (B)
+PISTON MOTOR WANGON (B)
+PITCAR (B)
+PO ASLI
+PO. CEBONG JAYA WSB (B)
+PO. PUTRA KEMBAR (IB)
+PO.MERDEKA (IC)
+PRIMA SEJAHTERA (B)
+PT ALBASIA CIPTA SEJAHTERA (IC)
+PT AMANAT JAYA TRANSPORT ( IB )
+PT ARTA GRAHA INDOTAMA (IB)
+PT ARUD JAYA FARM MANDIRAJA (IB)
+PT ASRIKIN PUTRA SEJATI (IB)
+PT BALAKOSA NATYA MINO SAROYO ( IC )
+PT BARU BANGKIT ABADI SEJAHTERA (IB)
+PT BATU ALAM SELATAN (IB)
+PT BERKAH BUMI CILACAP ( IC )
+PT BERKAH CAHAYA ASLI (IC)
+PT BERKAH LESTARI TRANSPORT (IB)
+PT BERKAH RAHAYU INDONESIA (IC)
+PT BINTANG BARU MEGA RAYA (IB)
+PT DARMA RAHAYU (IC)
+PT DUTA SAMUDERA KARYA ( IC )
+PT DUTA SARANA MUDA (IB)
+PT DWI TUNGGAL PUTRA PERTAMA PWT (B)
+PT ELSAMBA PUTRA (IC)
+PT ENERGI SUKSES ABADI (IC)
+PT FIMBO ROMANTIS ABADI (IB)
+PT GARUDA MITRA ABADI JAYA (IB)
+PT GIBRAN JAYA PRIMA (IB)
+PT GUNUNG JATI JAYA SAKTI ( IC )
+PT GUNUNG MAS PUTRA (IB)
+PT HARAPAN JAYA ANUGERAH (B)
+PT HARYA DEWA
+PT HEKSA MANDIRI BETON (IC)
+PT HENGYUE INDUSTRI ESBATU (IC)
+PT JADI KUAT BERSAMA ( IB )
+PT JASA KONTRUKSI BANJARNEGARA (IB)
+PT KANAYA RECYCLE INDONESIA (IB)
+PT KARUNIA TIRTO MULYO ( IB )
+PT KUSUMA DEWI (IB)
+PT KUSUMA RAHAYU JAYA (IC)
+PT MEKAR GEMILANG SEMESTA (IB)
+PT MITRA ANDALAN BETON (IB)
+PT MUARA KAYU SENGON (IB)
+PT MUKIR SELO PRATAMA (IC)
+PT MULYO TRANS SAKONDA (IC)
+PT MUSI RAWAS PERKASA (IB)
+PT NINDYA KARYA ( IC )
+PT PERTAMINA MAINTENANCE DAN CONSTRUCTION (IC)
+PT PIRUSA JAYA TRANS (IB)
+PT PUNDI INDOKAYU INDUSTRI (IB)
+PT RAMA KEBUMEN (IC)
+PT RIYAN AGUNG ABADI (IC)
+PT SABA PRIMA (IC)
+PT SATRIA KAYU INDUSTRI ( IC )
+PT SBPS (IB)
+PT SERAYU SURYA SAMUDRA (IC)
+PT SIDAKAYA SAPUTRO JAYA (IC)
+PT SINAR RIAU PERKASA PRIMA (IB)
+PT SUMBER IHTIAR PERKASA
+PT SURYA KARYA SETIABUDI (IT)
+PT SURYA KUSUMA INDAH (IB)
+PT SUTIKNO TIRTA KENCANA
+PT SUTIKNO TIRTA KENCANA (B)
+PT TND JAYA MANDIRI
+PT. AGUNG DARMA INTRA (IB)
+PT. ANEKA BANGUN SARANA (IC)
+PT. ARGO KENCANA TRANSINDO (IC)
+PT. ARINDO INTI JAYA CLP (IC)
+PT. BANGKIT KARYA (IB)
+PT. BANGUN PERSADA LOGISTIC (IB)
+PT. BATU REJEKI SEMESTA (IB)
+PT. CIPTO JEMBAR JAYA TRITIH LOR (IC)
+PT. EKA TIMUR RAYA (IB)
+PT. FAJAR UTAMA KARYA (IB)
+PT. JADI KUAT BERSAMA (IB)
+PT. KARYA ALAM ABADI (IC)
+PT. KRAKATAU INDAH (IB)
+PT. MAJU LANCAR UTAMA (IC)
+PT. MASAWAN ABADI SEJAHTERA
+PT. MELISTA KARYA CLP (IC)
+PT. MITRA SEJAHTERA ARTHALESTARI (IB)
+PT. PANCA KARYA SENTOSA (IC)
+PT. PRATAMA MANDIRI MULYA (IC)
+PT. PUTERA BAJA TUNGGAL (IC)
+PT. PUTRA TUNGGAL BERDIKARI TRITIH KULON (IC)
+PT. RAMA SEJAHTERA GOMBONG (IC)
+PT. SAKTI KARYA NUSANTARATAMA SIDAKAYA (IC)
+PT. SARI GEDE:PO. PUTRA BANGSA (IC)
+PT. SATRIA BUANA PAMULA SAKTI (IB)
+PT. SINAR TAMBANG ARTHALESTARI (IB)
+PT. SM-CYCLO INDONESIA (IC)
+PT. SUPRI JAYA ABADI (IC)
+PT. TAWEKAL SAROFA (IC)
+PT. TRI AGUNG JAYA ABADI (IC)
+PT. VINOLI INTERNUSA INDAH (IB)
+PT.RICH HARVEST HASIL TIMBER (IB)
+PT.SARANA KARYA CEMERLANG UTAMA (IC)
+PURBITO ALAT BERAT (IB)
+PURNAMA MOTOR BOBOTSARI (B)
+PURWOKERTO AUTO SERVICE (B)
+PUTRA ABADI MOTOR PUNGGELAN BNA (B)
+RAFA JAYA MANDIRI KR.LEWAS PWT (B)
+RAHMAT MOTOR (B)
+RAKHA MOTOR KR.KLESEM PWT (B)
+REJEKI JAYA MOTOR BNA (B)
+RESTU MOTOR (B)
+RISKI MOTOR RAKIT BNA (B)
+RIZKI MOTOR BANJARMANGU BNA (B)
+RIZKI MOTOR PAGENTAN (B)
+RM MOTOR BNA (B)
+RODA JAYA (B)
+ROMA MOTOR PWT(CV. PUTRA MANDIRI PERSADA) (B)
+SAHABAT KARANGKOBAR (B)
+SAHABAT MOTOR 2 (B)
+SAHABAT MOTOR SUMPIUH (B)
+SAKURA MOTOR (CV SAKURA BARU) PWT (B)
+SAMA JAYA PBG (B)
+SAMUDRA MOTOR BNA (B)
+SANTOSA MOTOR KLAMPOK BNA (B)
+SARI BUANA KARANGANYAR (IC)
+SARI JAYA MOTOR PUNGGELAN BNA (B)
+SATRIA JAYA MOTOR (B)
+SATYA JAYA MOTOR (B)
+SAUDARA MOTOR KR.TENGAH BNA (B)
+SAYOK MOTOR PATIKRAJA (B)
+SEJAHTERA MOTOR (CV MAKMUR SEJAHTERA) PWT (B)
+SEJATI BENGKEL(IB)
+SEKAWAN MOTOR KALIBAGOR BMS (B)
+SEMESTA JAYA MOTOR (B)
+SEMI BARU MOTOR WANGON (B)
+SENTRAL MOTOR PWT TIMUR (B)
+SERAYU MOTOR RANDEGAN SIGALUH BNA (B)
+SETIA BUDI MOTOR PWT (B)
+SETYA JAYA MOTOR (B)
+SHAN MOTOR (B)
+SHM SUMPIUH
+SIGIT DASYADI (IB)
+SINAR SAKTI MOTOR
+SITI AYSAH KALIBENDA (IB)
+SOKARAJA MOTOR (B)
+SPBU 44.531.01 AJIBARANG (B)
+SPBU 44.531.02 SUMPIUH (B)
+SPBU 44.531.05 WANGON (B)
+SPBU 44.531.06 KARANGBAWANG (B)
+SPBU 44.531.07 TANJUNG PWT (B)
+SPBU 44.531.09 CILONGOK (B)
+SPBU 44.531.10 SOKARAJA (B)
+SPBU 44.531.11 MARGASANA (B)
+SPBU 44.531.17 KARANGNANAS (B)
+SPBU 44.531.18 LEGOR BMS (B)
+SPBU 44.531.20 JAMBU WANGON (B)
+SPBU 44.531.22 BMS (B)
+SPBU 44.531.24 TINGGAR JAYA (B)
+SPBU 44.531.25 TAMBAK (B)
+SPBU 44.531.28 KEDUNGPRING BMS (B)
+SPBU 44.531.29 RAWALO (B)
+SPBU 44.531.33 PURWANEGARA (B)
+SPBU 44.531.34 (B)
+SPBU 44.531.36
+SPBU 44.534.02 KLAMPOK BNA (B)
+SPBU 44.534.03 BLAMBANGAN BNA (B)
+SPBU 44.534.06 KARANGKOBAR BNA (B)
+SPBU 44.534.12 SUSUKAN BNA (B)
+SPBU 44.534.14 PRIGI BNA (B)
+SPBU 44.534.15 KLAMPOK BNA (B)
+SPBU 45.534.13 KALIBENING BNA (B)
+SPBU KALISALAK BREBES (B)
+ST CAPITAL (IB)
+SUBUR BAN PWT SEL (B)
+SUDIMIN ALAT BERAT (IB)
+SUGENG MOTOR KEDUNGRANDU (B)
+SUGENG MOTOR TAMBAK BMS (B)
+SUKSES MOTOR KEMBARAN (B)
+SUKSES MOTOR PWT (B)
+SULTAN MOTORINDO (B)
+SUMBER AGUNG MOTOR PBG (B)
+SUMBER BAJA KARANGLEWAS (IB)
+SUMBER BARU CIAMIS (B)
+SUMBER BERKAT MOTOR (B)
+SUMBER HARAPAN MOTOR PWT TIMUR (B)
+SUMBER INDAH CIAMIS (B)
+SUMBER JAYA AJIBARANG (B)
+SUPARNO ALAT BERAT (IB)
+SURYA JAYA MOTOR BNA (B)
+SURYA KARANGKOBAR (B)
+SURYA MEKAR PWT TIMUR (B)
+SURYA MOTOR 2 (B)
+SURYA MOTOR BNA (B)
+SURYA MOTOR PURBALINGGA (B)
+SW RAYA GRENDENG PWT (B)
+TARSONO MOTOR (B)
+TARUNA JAYA MOTOR (B)
+TB BENANG MULYA (IC)
+TB RIDLO BESI BETON
+TEGUH MOTOR PWT SEL (B)
+TERMINAL MOTOR (B)
+TIRTO BANTOLO WANGON (B)
+TOHID MOTOR PETARANGAN (B)
+TOP JAYA MOTOR PWT TIMUR (B)
+TORO MOTOR KEMBARAN PWT (B)
+TOTAL AUTO SERVICE (B)
+TRESNA MOTOR BNA (B)
+TRESNO MOTOR PWT (B)
+TRI MANDIRI MOTOR KEJAWAR BMS (B)
+TRIPLE BESS WSB (B)
+TUNAS KARYA
+UD HIDUP BARU PWT SEL (B)
+UD JAYA ASLI PLAYWOOD (IC)
+UD MARGO MULYO PWT UTARA (B)
+UD MEKAR JAYA (IC)
+UD MUGI BAROKAH 2 (IB)
+UD. PADI MULYO (IB)
+UDI MOTOR SUMBANG (B)
+UDIN MERIAH TEKNIK MANDIRAJA BNA (B)
+UNEDO MOTOR PWT SEL (B)
+UTAMA JAYA
+VINOS MOTOR PUNGGELAN BNA (B)
+WARUNG SPBU KALIERANG (B)
+WIJAHAN MOTOR BMS (B)
+YAJI MOTOR BAWANG BNA (B)
+YSBS (IC)
+YUNI RIZALDI ALAT BERAT (IB)
+ZAENAL JAYA MOTOR RAKIT (B)
+ZAKY MOTOR (B)
+CV ARJUNA BUANA KONTRUKSI (IB)
+`.trim().split('\n').map(x=>x.trim()).filter(Boolean);
+
+// =================================================
+// 2. STATE
+// =================================================
+
+const DB_KEY='outlet-file-manager-v3';
+const VALID_TYPES=['NOTA','SJ','MUTASI'];
+
+let outlets=[...new Set(DEFAULT_DATABASE)];
+let files=[];
+
+const $=id=>document.getElementById(id);
+
+try{
+ const saved=JSON.parse(localStorage.getItem(DB_KEY)||'null');
+ if(Array.isArray(saved)&&saved.length) outlets=saved;
+}catch(e){}
+
+// =================================================
+// 3. UTILITIES
+// =================================================
+
+function escapeHTML(value){
+ return String(value??'').replace(/[&<>"']/g,c=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+ })[c]);
+}
+
+function normalize(value){
+ return String(value||'').normalize('NFD')
+  .replace(/[\u0300-\u036f]/g,'')
+  .trim().replace(/\s+/g,' ').toUpperCase();
+}
+
+function normalizeDocument(value){
+ return String(value||'')
+  .toUpperCase()
+  .replace(/[^A-Z0-9]/g,'');
+}
+
+function canonicalOutlet(value){
+ const target=normalize(value);
+ return outlets.find(x=>normalize(x)===target)||'';
+}
+
+function slug(value){
+ return String(value)
+  .replace(/\s*\((B|IB|IC|C|ID|IT)\)\s*$/i,'')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g,'')
+  .toUpperCase()
+  .replace(/&/g,' DAN ')
+  .replace(/[^A-Z0-9]+/g,'_')
+  .replace(/^_+|_+$/g,'');
+}
+
+function extension(name){
+ const index=name.lastIndexOf('.');
+ return index>=0?name.slice(index).toLowerCase():'.jpg';
+}
+
+function lastFour(value){
+ return normalizeDocument(value).slice(-4);
+}
+
+function newName(item){
+ const outlet=canonicalOutlet(item.outlet);
+ const number=lastFour(item.number);
+
+ if(!outlet||!VALID_TYPES.includes(item.type)||number.length!==4) return '';
+
+ return `${slug(outlet)}_${item.type}_${number}${extension(item.file.name)}`;
+}
+
+function ready(item){
+ return !!newName(item);
+}
+
+function guessNumber(filename){
+ const match=String(filename).match(
+  /(?:NOTA|SJ|SURAT[-_ ]?JALAN|MUTASI)[-_ ]*([A-Z0-9-]{4,})/i
+ );
+
+ return match?lastFour(match[1]):'';
+}
+
+function downloadBlob(blob,name){
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+
+ a.href=url;
+ a.download=name;
+ document.body.appendChild(a);
+ a.click();
+ a.remove();
+
+ setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
+
+function renderDB(){
+ $('dbCount').textContent=`${outlets.length} Outlet`;
+ $('dbStatus').textContent='Database aktif';
+
+ $('outletOptions').innerHTML=outlets.map(x=>
+  `<option value="${escapeHTML(x)}"></option>`
+ ).join('');
+
+ localStorage.setItem(DB_KEY,JSON.stringify(outlets));
+}
+
+// =================================================
+// 4. DATABASE MANAGEMENT
+// =================================================
+
+$('exportDB').onclick=()=>{
+ downloadBlob(
+  new Blob([outlets.join('\n')],{type:'text/plain;charset=utf-8'}),
+  'DATABASE_OUTLET.txt'
+ );
+};
+
+$('importDB').onclick=()=> $('dbInput').click();
+
+$('dbInput').onchange=async e=>{
+ const file=e.target.files[0];
+ if(!file)return;
+
+ try{
+  const rows=(await file.text()).split(/\r?\n/)
+   .map(x=>x.trim()).filter(Boolean)
+   .filter(x=>!/^nama[_ ]?outlet$/i.test(x));
+
+  if(rows.length<10) throw new Error('Database terlalu sedikit.');
+
+  outlets=[...new Set(rows)];
+  renderDB();
+
+  alert(`${outlets.length} outlet berhasil dimuat.`);
+ }catch(error){
+  alert('Gagal membaca database: '+error.message);
+ }
+
+ e.target.value='';
+};
+
+$('resetDB').onclick=()=>{
+ if(!confirm('Kembalikan database outlet bawaan?'))return;
+
+ outlets=[...new Set(DEFAULT_DATABASE)];
+ renderDB();
+};
+
+// =================================================
+// 5. IMPORT PHOTOS
+// =================================================
+
+function addFiles(list){
+ const newlyAdded=[];
+
+ for(const file of list){
+  const isImage=file.type.startsWith('image/')||
+   /\.(jpg|jpeg|png|webp|gif|bmp|heic|heif|tiff?)$/i.test(file.name);
+
+  if(!isImage)continue;
+
+  const key=[file.name,file.size,file.lastModified].join('_');
+
+  if(files.some(x=>x.key===key))continue;
+
+  const detectedType=/\bSJ\b|SURAT.?JALAN/i.test(file.name)?'SJ':
+   /\bMUTASI\b/i.test(file.name)?'MUTASI':
+   /\bNOTA\b|INVOICE/i.test(file.name)?'NOTA':'';
+
+  const item={
+   id:crypto.randomUUID?crypto.randomUUID():`${Date.now()}_${Math.random()}`,
+   key,
+   file,
+   url:URL.createObjectURL(file),
+   outlet:'',
+   type:detectedType,
+   number:guessNumber(file.name),
+   selected:true
+  };
+
+  files.push(item);
+  newlyAdded.push(item);
+ }
+
+ render();
+
+ if(newlyAdded.length>0){
+  openTriageModal(newlyAdded);
+ }
+}
+
+$('selectFiles').onclick=()=> $('fileInput').click();
+$('selectFolder').onclick=()=> $('folderInput').click();
+
+$('fileInput').onchange=e=>{
+ addFiles(e.target.files);
+ e.target.value='';
+};
+
+$('folderInput').onchange=e=>{
+ addFiles(e.target.files);
+ e.target.value='';
+};
+
+$('dropzone').addEventListener('dragover',e=>{
+ e.preventDefault();
+ $('dropzone').classList.add('active');
+});
+
+$('dropzone').addEventListener('dragleave',()=>{
+ $('dropzone').classList.remove('active');
+});
+
+$('dropzone').addEventListener('drop',e=>{
+ e.preventDefault();
+ $('dropzone').classList.remove('active');
+ addFiles(e.dataTransfer.files);
+});
+
+$('dropzone').addEventListener('click',e=>{
+ if(!e.target.closest('button'))$('fileInput').click();
+});
+
+$('clearFiles').onclick=()=>{
+ if(!files.length||!confirm('Hapus seluruh foto?'))return;
+
+ files.forEach(x=>URL.revokeObjectURL(x.url));
+ files=[];
+ render();
+};
+
+// =================================================
+// 6. FILTER
+// =================================================
+
+function visibleFiles(){
+ const query=$('search').value.trim().toLowerCase();
+ const type=$('typeFilter').value;
+ const status=$('statusFilter').value;
+
+ const result=files.filter(item=>{
+  const content=[
+   item.file.name,item.outlet,item.type,item.number
+  ].join(' ').toLowerCase();
+
+  const matchSearch=!query||content.includes(query);
+  const matchType=type==='all'||
+   (type==='none'?!item.type:item.type===type);
+
+  const matchStatus=status==='all'||
+   (status==='ready'&&ready(item))||
+   (status==='pending'&&!ready(item));
+
+  return matchSearch&&matchType&&matchStatus;
+ });
+
+ if($('sortFilter').value==='outlet'){
+  result.sort((a,b)=>a.outlet.localeCompare(b.outlet));
+ }else{
+  result.sort((a,b)=>a.file.name.localeCompare(b.file.name));
+ }
+
+ return result;
+}
+
+['search','typeFilter','statusFilter','sortFilter'].forEach(id=>{
+ $(id).addEventListener(id==='search'?'input':'change',render);
+});
+
+// =================================================
+// 7. RENDER TABLE
+// =================================================
+
+function render(){
+ const list=visibleFiles();
+
+ $('totalCount').textContent=files.length;
+ $('filterCount').textContent=list.length;
+ $('readyCount').textContent=files.filter(ready).length;
+ $('pendingCount').textContent=files.filter(x=>!ready(x)).length;
+ $('resultLabel').textContent=`${list.length} dari ${files.length} foto ditampilkan`;
+
+ if(!list.length){
+  $('fileTable').innerHTML=
+   `<tr><td colspan="8"><div class="empty">Tidak ada foto yang cocok.</div></td></tr>`;
+  $('masterCheck').checked=false;
+  return;
+ }
+
+ $('fileTable').innerHTML=list.map(item=>{
+  const filename=newName(item);
+  const outletValid=canonicalOutlet(item.outlet);
+
+  const status=filename
+   ?'<span class="valid">SIAP RENAME</span>'
+   :(item.outlet&&!outletValid
+     ?'<span class="invalid">OUTLET TIDAK DIKENAL</span>'
+     :'<span class="invalid">LENGKAPI DATA</span>');
+
+  return `
+  <tr data-id="${escapeHTML(item.id)}">
+   <td><input class="check-row" type="checkbox" ${item.selected?'checked':''}></td>
+
+   <td>
+    <img class="preview" src="${item.url}" alt="Preview">
+   </td>
+
+   <td>
+    <div class="filename">${escapeHTML(item.file.name)}</div>
+    <div class="small">${(item.file.size/1024).toFixed(1)} KB</div>
+   </td>
+
+   <td>
+    <input type="text" list="outletOptions"
+     class="input-outlet" data-field="outlet"
+     placeholder="Cari outlet..."
+     value="${escapeHTML(item.outlet)}">
+   </td>
+
+   <td>
+    <select class="input-type" data-field="type">
+     <option value="">Pilih</option>
+     <option value="NOTA" ${item.type==='NOTA'?'selected':''}>NOTA</option>
+     <option value="SJ" ${item.type==='SJ'?'selected':''}>SJ</option>
+     <option value="MUTASI" ${item.type==='MUTASI'?'selected':''}>MUTASI</option>
+    </select>
+   </td>
+
+   <td>
+    <input type="text" maxlength="40"
+     inputmode="text" autocomplete="off"
+     class="input-number" data-field="number"
+     placeholder="Huruf / angka"
+     value="${escapeHTML(item.number)}">
+   </td>
+
+   <td>
+    <div class="newname">${escapeHTML(filename||'Nama belum lengkap')}</div>
+    <div class="row-status">${status}</div>
+   </td>
+
+   <td>
+    <div class="row">
+     <button data-action="download" ${filename?'':'disabled'}>Unduh</button>
+     <button data-action="remove" class="danger">Hapus</button>
+    </div>
+   </td>
+  </tr>`;
+ }).join('');
+
+ $('masterCheck').checked=list.length>0&&list.every(x=>x.selected);
+}
+
+// =================================================
+// 8. LIVE EDIT
+// =================================================
+
+function updateRow(row,item){
+ const filename=newName(item);
+ const valid=canonicalOutlet(item.outlet);
+
+ row.children[6].innerHTML=`
+  <div class="newname">${escapeHTML(filename||'Nama belum lengkap')}</div>
+  <div class="row-status">
+   ${filename
+    ?'<span class="valid">SIAP RENAME</span>'
+    :(item.outlet&&!valid
+      ?'<span class="invalid">OUTLET TIDAK DIKENAL</span>'
+      :'<span class="invalid">LENGKAPI DATA</span>')}
+  </div>`;
+
+ row.querySelector('[data-action="download"]').disabled=!filename;
+
+ $('readyCount').textContent=files.filter(ready).length;
+ $('pendingCount').textContent=files.filter(x=>!ready(x)).length;
+}
+
+$('fileTable').addEventListener('input',e=>{
+ const field=e.target.dataset.field;
+ if(!field)return;
+
+ const row=e.target.closest('tr');
+ const item=files.find(x=>x.id===row.dataset.id);
+ if(!item)return;
+
+ if(field==='number'){
+  item.number=normalizeDocument(e.target.value);
+  e.target.value=item.number;
+ }else{
+  item[field]=e.target.value;
+ }
+
+ updateRow(row,item);
+});
+
+$('fileTable').addEventListener('change',e=>{
+ const row=e.target.closest('tr');
+ if(!row)return;
+
+ const item=files.find(x=>x.id===row.dataset.id);
+ if(!item)return;
+
+ if(e.target.classList.contains('check-row')){
+  item.selected=e.target.checked;
+
+  $('masterCheck').checked=
+   visibleFiles().length>0&&visibleFiles().every(x=>x.selected);
+
+  return;
+ }
+
+ const field=e.target.dataset.field;
+
+ if(field==='type'){
+  item.type=e.target.value;
+  render();
+ }
+
+ if(field==='outlet'){
+  const canonical=canonicalOutlet(e.target.value);
+  item.outlet=canonical||e.target.value;
+  render();
+ }
+});
+
+// =================================================
+// 9. TABLE ACTIONS + VIEWER
+// =================================================
+
+$('fileTable').addEventListener('click',e=>{
+ const image=e.target.closest('.preview');
+
+ if(image){
+  const row=image.closest('tr');
+  const item=files.find(x=>x.id===row.dataset.id);
+
+  if(item)openViewer(item);
+  return;
+ }
+
+ const button=e.target.closest('button[data-action]');
+ if(!button)return;
+
+ const row=button.closest('tr');
+ const item=files.find(x=>x.id===row.dataset.id);
+ if(!item)return;
+
+ if(button.dataset.action==='download'){
+  downloadBlob(item.file,newName(item));
+ }
+
+ if(button.dataset.action==='remove'){
+  URL.revokeObjectURL(item.url);
+  files=files.filter(x=>x.id!==item.id);
+  render();
+ }
+});
+
+// =================================================
+// 10. BULK ACTIONS
+// =================================================
+
+$('applyBulk').onclick=()=>{
+ const outletInput=$('bulkOutlet').value.trim();
+ const outlet=outletInput?canonicalOutlet(outletInput):'';
+ const type=$('bulkType').value;
+ const list=visibleFiles();
+
+ if(!list.length){
+  alert('Tidak ada foto hasil filter.');
+  return;
+ }
+
+ if(outletInput&&!outlet){
+  alert('Outlet tidak ditemukan dalam database.');
+  return;
+ }
+
+ if(!outlet&&!type){
+  alert('Isi outlet atau jenis dokumen.');
+  return;
+ }
+
+ if(!confirm(`Terapkan perubahan ke ${list.length} foto?`))return;
+
+ list.forEach(item=>{
+  if(outlet)item.outlet=outlet;
+  if(type)item.type=type;
+ });
+
+ render();
+ alert('Perubahan berhasil diterapkan.');
+};
+
+$('selectVisible').onclick=()=>{
+ visibleFiles().forEach(x=>x.selected=true);
+ render();
+};
+
+$('unselectAll').onclick=()=>{
+ files.forEach(x=>x.selected=false);
+ render();
+};
+
+$('masterCheck').onchange=e=>{
+ visibleFiles().forEach(x=>x.selected=e.target.checked);
+ render();
+};
+
+// =================================================
+// 11. MODAL KLASIFIKASI OTOMATIS + MIKROSKOP HOVER ZOOM
+// =================================================
+
+let triageQueue=[];
+let triageIndex=0;
+let triageSelectedType='';
+let lastUsedOutlet='';
+
+// State Mikroskop
+let microscopePower=2.6; // Pembesaran default 260%
+let microscopeActive=false;
+let lastPointer={clientX:0,clientY:0,inside:false};
+
+const triageModal=$('triageModal');
+const triageFrontCard=$('triageFrontCard');
+const triageImage=$('triageImage');
+const microscopeReticle=$('microscopeReticle');
+const microscopeBadge=$('microscopeBadge');
+const triageOutletInput=$('triageOutletInput');
+const triageOutletList=$('triageOutletList');
+const triageNumberInput=$('triageNumberInput');
+
+function currentTriageItem(){
+ return triageQueue[triageIndex]||null;
+}
+
+// Hitung ukuran gambar ter-fit di dalam kartu
+function getFittedImageMetrics(){
+ const W=triageFrontCard.clientWidth;
+ const H=triageFrontCard.clientHeight;
+ const natW=triageImage.naturalWidth||W;
+ const natH=triageImage.naturalHeight||H;
+ const fitScale=Math.min(W/natW,H/natH);
+ const dispW=natW*fitScale;
+ const dispH=natH*fitScale;
+ const offsetX=(W-dispW)/2;
+ const offsetY=(H-dispH)/2;
+ return {W,H,dispW,dispH,offsetX,offsetY};
+}
+
+// Kembalikan tampilan foto ke 100% penuh
+function resetMicroscopeView(){
+ microscopeActive=false;
+ triageFrontCard.classList.remove('microscope-active');
+
+ if(!triageImage.naturalWidth)return;
+
+ const {dispW,dispH,offsetX,offsetY}=getFittedImageMetrics();
+ triageImage.style.width=`${dispW}px`;
+ triageImage.style.height=`${dispH}px`;
+ triageImage.style.transform=`translate(${offsetX}px,${offsetY}px) scale(1)`;
+
+ $('triageZoomReset').textContent='100%';
+ microscopeBadge.textContent='🔬 Arahkan kursor untuk zoom';
+}
+
+// Terapkan posisi mikroskop mengikuti kursor secara presisi
+function updateMicroscopeAt(clientX,clientY){
+ if(!triageImage.naturalWidth)return;
+
+ const rect=triageFrontCard.getBoundingClientRect();
+ const {dispW,dispH,offsetX,offsetY}=getFittedImageMetrics();
+
+ const mx=clientX-rect.left;
+ const my=clientY-rect.top;
+
+ // Koordinat relatif di dalam area gambar asli [0..1]
+ const relX=Math.max(0,Math.min(1,(mx-offsetX)/dispW));
+ const relY=Math.max(0,Math.min(1,(my-offsetY)/dispH));
+
+ // Posisikan titik gambar di bawah kursor agar tetap terkunci di ujung pointer
+ const tx=mx-relX*dispW*microscopePower;
+ const ty=my-relY*dispH*microscopePower;
+
+ microscopeActive=true;
+ triageFrontCard.classList.add('microscope-active');
+
+ triageImage.style.width=`${dispW}px`;
+ triageImage.style.height=`${dispH}px`;
+ triageImage.style.transform=`translate(${tx}px,${ty}px) scale(${microscopePower})`;
+
+ microscopeReticle.style.left=`${mx}px`;
+ microscopeReticle.style.top=`${my}px`;
+
+ const pct=Math.round(microscopePower*100);
+ $('triageZoomReset').textContent=`${pct}%`;
+ microscopeBadge.textContent=`🔬 Mikroskop ${pct}%`;
+}
+
+// Event Mikroskop pada kartu foto
+triageFrontCard.addEventListener('pointermove',e=>{
+ if(e.target.closest('.triage-zoom-tools')){
+  if(microscopeActive)resetMicroscopeView();
+  return;
+ }
+ lastPointer={clientX:e.clientX,clientY:e.clientY,inside:true};
+ updateMicroscopeAt(e.clientX,e.clientY);
+});
+
+triageFrontCard.addEventListener('pointerenter',e=>{
+ if(e.target.closest('.triage-zoom-tools'))return;
+ lastPointer={clientX:e.clientX,clientY:e.clientY,inside:true};
+ updateMicroscopeAt(e.clientX,e.clientY);
+});
+
+triageFrontCard.addEventListener('pointerleave',()=>{
+ lastPointer.inside=false;
+ resetMicroscopeView();
+});
+
+// Scroll mouse langsung mengatur pembesaran mikroskop
+triageFrontCard.addEventListener('wheel',e=>{
+ e.preventDefault();
+ const step=e.deltaY<0?0.35:-0.35;
+ microscopePower=Math.min(5.5,Math.max(1.4,microscopePower+step));
+ updateMicroscopeAt(e.clientX,e.clientY);
+},{passive:false});
+
+// Tombol kontrol pembesaran mikroskop di sudut kanan bawah foto
+$('triageZoomIn').onclick=e=>{
+ e.stopPropagation();
+ microscopePower=Math.min(5.5,microscopePower+0.4);
+ $('triageZoomReset').textContent=`${Math.round(microscopePower*100)}%`;
+};
+
+$('triageZoomOut').onclick=e=>{
+ e.stopPropagation();
+ microscopePower=Math.max(1.4,microscopePower-0.4);
+ $('triageZoomReset').textContent=`${Math.round(microscopePower*100)}%`;
+};
+
+$('triageZoomReset').onclick=e=>{
+ e.stopPropagation();
+ microscopePower=2.6;
+ resetMicroscopeView();
+};
+
+$('triageFullZoom').onclick=e=>{
+ e.stopPropagation();
+ const item=currentTriageItem();
+ if(item)openViewer(item);
+};
+
+// Klik foto langsung buka layar penuh
+triageFrontCard.addEventListener('click',e=>{
+ if(e.target.closest('.triage-zoom-tools'))return;
+ const item=currentTriageItem();
+ if(item)openViewer(item);
+});
+
+triageImage.onload=()=>{
+ if(lastPointer.inside&&!triageModal.classList.contains('hidden')){
+  updateMicroscopeAt(lastPointer.clientX,lastPointer.clientY);
+ }else{
+  resetMicroscopeView();
+ }
+};
+
+window.addEventListener('resize',()=>{
+ if(!triageModal.classList.contains('hidden')&&!microscopeActive){
+  resetMicroscopeView();
+ }
+});
+
+function updateTriagePreview(){
+ const item=currentTriageItem();
+ if(!item)return;
+
+ const rawNum=normalizeDocument(triageNumberInput.value);
+ const l4=lastFour(rawNum);
+ const badge=$('triageLast4Badge');
+
+ if(l4.length===4){
+  badge.textContent=`4 Akhir: ${l4}`;
+  badge.classList.add('ok');
+ }else{
+  badge.textContent=`${l4.length} / 4`;
+  badge.classList.remove('ok');
+ }
+
+ const validOutlet=canonicalOutlet(triageOutletInput.value);
+ const previewBox=$('triagePreviewName');
+
+ if(validOutlet && l4.length===4){
+  const previewType=triageSelectedType||'[SJ/MUTASI/NOTA]';
+  previewBox.textContent=`Hasil: ${slug(validOutlet)}_${previewType}_${l4}${extension(item.file.name)}`;
+  previewBox.classList.remove('hidden');
+ }else{
+  previewBox.classList.add('hidden');
+ }
+
+ $('btnChooseSJ').classList.toggle('selected',triageSelectedType==='SJ');
+ $('btnChooseMutasi').classList.toggle('selected',triageSelectedType==='MUTASI');
+ $('btnChooseNota').classList.toggle('selected',triageSelectedType==='NOTA');
+}
+
+function renderOutletDropdown(filterText=''){
+ const q=normalize(filterText);
+ const matched=q
+  ?outlets.filter(o=>normalize(o).includes(q))
+  :outlets;
+
+ if(!matched.length){
+  triageOutletList.innerHTML='<div class="combo-empty">Outlet tidak ditemukan di database</div>';
+ }else{
+  triageOutletList.innerHTML=matched.slice(0,120).map(o=>
+   `<div class="combo-item" data-val="${escapeHTML(o)}">${escapeHTML(o)}</div>`
+  ).join('');
+ }
+
+ triageOutletList.classList.remove('hidden');
+}
+
+function renderTriageCard(){
+ const item=currentTriageItem();
+ if(!item){
+  closeTriageModal();
+  return;
+ }
+
+ $('triageCounter').textContent=`Foto ${triageIndex+1} dari ${triageQueue.length}`;
+ $('triageFilename').textContent=item.file.name;
+ $('triageMsg').textContent='';
+
+ triageFrontCard.classList.remove('fly-left','fly-right','fly-up');
+ resetMicroscopeView();
+ triageImage.src=item.url;
+
+ const next1=triageQueue[triageIndex+1];
+ const next2=triageQueue[triageIndex+2];
+
+ if(next1){
+  $('triageBack1').src=next1.url;
+  $('triageBack1').classList.remove('hidden');
+ }else{
+  $('triageBack1').classList.add('hidden');
+ }
+
+ if(next2){
+  $('triageBack2').src=next2.url;
+  $('triageBack2').classList.remove('hidden');
+ }else{
+  $('triageBack2').classList.add('hidden');
+ }
+
+ triageOutletInput.value=item.outlet||'';
+ triageNumberInput.value=item.number||'';
+ triageSelectedType=item.type||'';
+ triageOutletList.classList.add('hidden');
+
+ if(lastUsedOutlet && !triageOutletInput.value){
+  $('triageUsePrevOutlet').textContent=`Pakai: ${lastUsedOutlet}`;
+  $('triageUsePrevOutlet').classList.remove('hidden');
+ }else{
+  $('triageUsePrevOutlet').classList.add('hidden');
+ }
+
+ updateTriagePreview();
+}
+
+function openTriageModal(itemsList){
+ const queue=(itemsList&&itemsList.length)?itemsList:files.filter(x=>!ready(x));
+ if(!queue.length){
+  alert('Semua foto sudah lengkap datanya.');
+  return;
+ }
+
+ triageQueue=[...queue];
+ triageIndex=0;
+ lastPointer.inside=false;
+ triageModal.classList.remove('hidden');
+ renderTriageCard();
+ setTimeout(()=>triageOutletInput.focus(),80);
+}
+
+function closeTriageModal(){
+ lastPointer.inside=false;
+ resetMicroscopeView();
+ triageModal.classList.add('hidden');
+ triageOutletList.classList.add('hidden');
+ render();
+}
+
+function submitTriageCard(chosenType){
+ const item=currentTriageItem();
+ if(!item)return;
+
+ triageSelectedType=chosenType;
+ updateTriagePreview();
+
+ const validOutlet=canonicalOutlet(triageOutletInput.value);
+ const l4=lastFour(triageNumberInput.value);
+
+ if(!validOutlet){
+  $('triageMsg').textContent='Pilih nama outlet yang valid dari dropdown database terlebih dahulu.';
+  triageOutletInput.focus();
+  renderOutletDropdown(triageOutletInput.value);
+  return;
+ }
+
+ if(l4.length!==4){
+  $('triageMsg').textContent='Isi minimal 4 karakter terakhir nomor dokumen.';
+  triageNumberInput.focus();
+  return;
+ }
+
+ item.outlet=validOutlet;
+ item.type=chosenType;
+ item.number=l4;
+ lastUsedOutlet=validOutlet;
+
+ render();
+
+ const animClass=chosenType==='SJ'?'fly-left':
+  chosenType==='NOTA'?'fly-right':'fly-up';
+
+ resetMicroscopeView();
+ triageFrontCard.classList.add(animClass);
+
+ setTimeout(()=>{
+  triageIndex++;
+  if(triageIndex>=triageQueue.length){
+   closeTriageModal();
+  }else{
+   renderTriageCard();
+   triageOutletInput.focus();
+  }
+ },230);
+}
+
+// Event Listener Modal
+$('openQuickModal').onclick=()=>openTriageModal();
+
+$('btnChooseSJ').onclick=()=>submitTriageCard('SJ');
+$('btnChooseMutasi').onclick=()=>submitTriageCard('MUTASI');
+$('btnChooseNota').onclick=()=>submitTriageCard('NOTA');
+
+$('triageSkip').onclick=()=>{
+ triageIndex++;
+ if(triageIndex>=triageQueue.length){
+  closeTriageModal();
+ }else{
+  renderTriageCard();
+ }
+};
+
+$('triageClose').onclick=closeTriageModal;
+
+$('triageUsePrevOutlet').onclick=()=>{
+ if(lastUsedOutlet){
+  triageOutletInput.value=lastUsedOutlet;
+  $('triageUsePrevOutlet').classList.add('hidden');
+  triageOutletList.classList.add('hidden');
+  updateTriagePreview();
+  triageNumberInput.focus();
+ }
+};
+
+// Dropdown Outlet interaktif
+triageOutletInput.addEventListener('focus',()=>{
+ renderOutletDropdown(triageOutletInput.value);
+});
+
+triageOutletInput.addEventListener('input',()=>{
+ $('triageMsg').textContent='';
+ renderOutletDropdown(triageOutletInput.value);
+ updateTriagePreview();
+});
+
+$('triageOutletToggle').onclick=()=>{
+ if(triageOutletList.classList.contains('hidden')){
+  renderOutletDropdown('');
+  triageOutletInput.focus();
+ }else{
+  triageOutletList.classList.add('hidden');
+ }
+};
+
+triageOutletList.addEventListener('click',e=>{
+ const opt=e.target.closest('.combo-item');
+ if(!opt)return;
+
+ triageOutletInput.value=opt.dataset.val;
+ triageOutletList.classList.add('hidden');
+ $('triageMsg').textContent='';
+ updateTriagePreview();
+ triageNumberInput.focus();
+});
+
+document.addEventListener('click',e=>{
+ if(!e.target.closest('#triageComboWrap')){
+  triageOutletList.classList.add('hidden');
+ }
+});
+
+// Input 4 karakter terakhir
+triageNumberInput.addEventListener('input',()=>{
+ triageNumberInput.value=normalizeDocument(triageNumberInput.value);
+ $('triageMsg').textContent='';
+ updateTriagePreview();
+});
+
+triageNumberInput.addEventListener('keydown',e=>{
+ if(e.key==='Enter'&&triageSelectedType){
+  e.preventDefault();
+  submitTriageCard(triageSelectedType);
+ }
+});
+
+// =================================================
+// 12. ZIP GENERATOR TANPA LIBRARY
+// =================================================
+
+const crcTable=(()=>{
+ const table=new Uint32Array(256);
+
+ for(let n=0;n<256;n++){
+  let c=n;
+
+  for(let k=0;k<8;k++){
+   c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);
+  }
+
+  table[n]=c>>>0;
+ }
+
+ return table;
+})();
+
+function crc32(data){
+ let crc=0xFFFFFFFF;
+
+ for(let i=0;i<data.length;i++){
+  crc=crcTable[(crc^data[i])&255]^(crc>>>8);
+ }
+
+ return (crc^0xFFFFFFFF)>>>0;
+}
+
+function set16(view,offset,value){
+ view.setUint16(offset,value,true);
+}
+
+function set32(view,offset,value){
+ view.setUint32(offset,value,true);
+}
+
+function joinBytes(parts){
+ const size=parts.reduce((n,x)=>n+x.length,0);
+ const output=new Uint8Array(size);
+
+ let offset=0;
+
+ for(const part of parts){
+  output.set(part,offset);
+  offset+=part.length;
+ }
+
+ return output;
+}
+
+function uniqueName(name,used){
+ if(!used.has(name.toLowerCase())){
+  used.add(name.toLowerCase());
+  return name;
+ }
+
+ const dot=name.lastIndexOf('.');
+ const base=dot>=0?name.slice(0,dot):name;
+ const ext=dot>=0?name.slice(dot):'';
+
+ let i=2;
+ let candidate=`${base}_${i}${ext}`;
+
+ while(used.has(candidate.toLowerCase())){
+  i++;
+  candidate=`${base}_${i}${ext}`;
+ }
+
+ used.add(candidate.toLowerCase());
+ return candidate;
+}
+
+function dosDateTime(){
+ const d=new Date();
+ const year=Math.max(1980,d.getFullYear());
+
+ return {
+  time:(d.getHours()<<11)|(d.getMinutes()<<5)|Math.floor(d.getSeconds()/2),
+  date:((year-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate()
+ };
+}
+
+async function createZIP(items,onProgress){
+ if(items.length>65535){
+  throw new Error('Terlalu banyak file untuk format ZIP standar.');
+ }
+
+ const encoder=new TextEncoder();
+ const locals=[];
+ const centrals=[];
+ const used=new Set();
+ const dt=dosDateTime();
+
+ let offset=0;
+
+ for(let i=0;i<items.length;i++){
+  const item=items[i];
+  const name=uniqueName(newName(item),used);
+  const nameBytes=encoder.encode(name);
+  const data=new Uint8Array(await item.file.arrayBuffer());
+
+  const size=data.length;
+
+  if(size>0xFFFFFFFF){
+   throw new Error('Ukuran satu file terlalu besar untuk ZIP standar.');
+  }
+
+  const crc=crc32(data);
+
+  // Local header
+  const lh=new Uint8Array(30);
+  const lv=new DataView(lh.buffer);
+
+  set32(lv,0,0x04034b50);
+  set16(lv,4,20);
+  set16(lv,6,0x0800);
+  set16(lv,8,0);
+  set16(lv,10,dt.time);
+  set16(lv,12,dt.date);
+  set32(lv,14,crc);
+  set32(lv,18,size);
+  set32(lv,22,size);
+  set16(lv,26,nameBytes.length);
+  set16(lv,28,0);
+
+  locals.push(lh,nameBytes,data);
+
+  // Central header
+  const ch=new Uint8Array(46);
+  const cv=new DataView(ch.buffer);
+
+  set32(cv,0,0x02014b50);
+  set16(cv,4,20);
+  set16(cv,6,20);
+  set16(cv,8,0x0800);
+  set16(cv,10,0);
+  set16(cv,12,dt.time);
+  set16(cv,14,dt.date);
+  set32(cv,16,crc);
+  set32(cv,20,size);
+  set32(cv,24,size);
+  set16(cv,28,nameBytes.length);
+  set16(cv,30,0);
+  set16(cv,32,0);
+  set16(cv,34,0);
+  set16(cv,36,0);
+  set32(cv,38,0);
+  set32(cv,42,offset);
+
+  centrals.push(ch,nameBytes);
+
+  offset+=lh.length+nameBytes.length+size;
+
+  onProgress?.((i+1)/items.length*90);
+ }
+
+ const centralData=joinBytes(centrals);
+ const centralOffset=offset;
+
+ if(centralData.length>0xFFFFFFFF||centralOffset>0xFFFFFFFF){
+  throw new Error('Arsip melebihi batas ZIP standar. Pecah menjadi beberapa ZIP.');
+ }
+
+ const end=new Uint8Array(22);
+ const ev=new DataView(end.buffer);
+
+ set32(ev,0,0x06054b50);
+ set16(ev,4,0);
+ set16(ev,6,0);
+ set16(ev,8,items.length);
+ set16(ev,10,items.length);
+ set32(ev,12,centralData.length);
+ set32(ev,16,centralOffset);
+ set16(ev,20,0);
+
+ onProgress?.(100);
+
+ return new Blob([
+  ...locals,
+  centralData,
+  end
+ ],{type:'application/zip'});
+}
+
+// =================================================
+// 13. DOWNLOAD ZIP
+// =================================================
+
+async function downloadZIP(items,filename,button){
+ const valid=items.filter(ready);
+ const invalid=items.length-valid.length;
+
+ if(!valid.length){
+  alert('Tidak ada foto yang siap di-rename.');
+  return;
+ }
+
+ if(invalid&&!confirm(
+  `${invalid} foto belum lengkap dan akan dilewati. Lanjutkan dengan ${valid.length} foto?`
+ )){
+  return;
+ }
+
+ const original=button.textContent;
+
+ button.disabled=true;
+ $('progress').style.display='block';
+
+ try{
+  const blob=await createZIP(valid,percent=>{
+   $('progressBar').style.width=percent+'%';
+   button.textContent=`Membuat ZIP ${Math.round(percent)}%`;
+  });
+
+  downloadBlob(blob,filename);
+
+  alert(`${valid.length} foto berhasil dimasukkan ke ZIP.`);
+ }catch(error){
+  console.error(error);
+  alert('Gagal membuat ZIP: '+error.message);
+ }finally{
+  button.disabled=false;
+  button.textContent=original;
+
+  setTimeout(()=>{
+   $('progress').style.display='none';
+   $('progressBar').style.width='0%';
+  },1000);
+ }
+}
+
+$('downloadSelected').onclick=()=>{
+ const list=files.filter(item=>
+  item.selected&&visibleFiles().some(x=>x.id===item.id)
+ );
+
+ downloadZIP(
+  list,
+  'OUTLET_FILE_PILIHAN.zip',
+  $('downloadSelected')
+ );
+};
+
+$('downloadFiltered').onclick=()=>{
+ downloadZIP(
+  visibleFiles(),
+  'OUTLET_FILE_HASIL_FILTER.zip',
+  $('downloadFiltered')
+ );
+};
+
+// =================================================
+// 14. EXPORT CSV
+// =================================================
+
+$('exportCSV').onclick=()=>{
+ const rows=[
+  ['File Asli','Nama Outlet','Jenis','Nomor Lengkap','4 Karakter Terakhir','Nama Baru','Status']
+ ];
+
+ visibleFiles().forEach(item=>{
+  rows.push([
+   item.file.name,
+   item.outlet,
+   item.type,
+   item.number,
+   lastFour(item.number),
+   newName(item),
+   ready(item)?'SIAP':'BELUM LENGKAP'
+  ]);
+ });
+
+ const csv='\uFEFF'+rows.map(row=>
+  row.map(value=>'"'+String(value??'').replace(/"/g,'""')+'"').join(';')
+ ).join('\r\n');
+
+ downloadBlob(
+  new Blob([csv],{type:'text/csv;charset=utf-8'}),
+  'REKAP_OUTLET.csv'
+ );
+};
+
+// =================================================
+// 15. IMAGE VIEWER: ZOOM + PAN
+// =================================================
+
+let scale=1;
+let panX=0;
+let panY=0;
+
+let dragging=false;
+let startX=0;
+let startY=0;
+let startPanX=0;
+let startPanY=0;
+
+const viewer=$('imageViewer');
+const viewerImage=$('viewerImage');
+const stage=$('viewerStage');
+
+function updateViewer(){
+ viewerImage.style.transform=
+  `translate(${panX}px,${panY}px) scale(${scale})`;
+
+ $('zoomLevel').textContent=
+  `${Math.round(scale*100)}%`;
+}
+
+function openViewer(item){
+ viewerImage.src=item.url;
+ $('viewerTitle').textContent=item.file.name;
+
+ scale=1;
+ panX=0;
+ panY=0;
+
+ viewer.classList.remove('hidden');
+
+ updateViewer();
+}
+
+function closeViewer(){
+ viewer.classList.add('hidden');
+ viewerImage.src='';
+ dragging=false;
+ stage.classList.remove('dragging');
+}
+
+function setZoom(value){
+ scale=Math.min(6,Math.max(.25,value));
+ updateViewer();
+}
+
+$('zoomIn').onclick=()=>setZoom(scale+.25);
+$('zoomOut').onclick=()=>setZoom(scale-.25);
+
+$('zoomReset').onclick=()=>{
+ scale=1;
+ panX=0;
+ panY=0;
+ updateViewer();
+};
+
+$('zoomClose').onclick=closeViewer;
+
+stage.addEventListener('wheel',event=>{
+ event.preventDefault();
+
+ const amount=event.deltaY<0?.2:-.2;
+ setZoom(scale+amount);
+
+},{passive:false});
+
+stage.addEventListener('pointerdown',event=>{
+ if(event.pointerType==='mouse'&&event.button!==0)return;
+
+ dragging=true;
+
+ startX=event.clientX;
+ startY=event.clientY;
+
+ startPanX=panX;
+ startPanY=panY;
+
+ stage.classList.add('dragging');
+
+ stage.setPointerCapture(event.pointerId);
+});
+
+stage.addEventListener('pointermove',event=>{
+ if(!dragging)return;
+
+ panX=startPanX+(event.clientX-startX);
+ panY=startPanY+(event.clientY-startY);
+
+ updateViewer();
+});
+
+function stopDragging(){
+ dragging=false;
+ stage.classList.remove('dragging');
+}
+
+stage.addEventListener('pointerup',stopDragging);
+stage.addEventListener('pointercancel',stopDragging);
+
+viewerImage.addEventListener('dblclick',()=>{
+ if(scale<1.5){
+  setZoom(2);
+ }else{
+  scale=1;
+  panX=0;
+  panY=0;
+  updateViewer();
+ }
+});
+
+viewer.addEventListener('click',event=>{
+ if(event.target===viewer)closeViewer();
+});
+
+document.addEventListener('keydown',event=>{
+ if(!viewer.classList.contains('hidden')){
+  if(event.key==='Escape')closeViewer();
+  if(event.key==='+'||event.key==='=')setZoom(scale+.25);
+  if(event.key==='-')setZoom(scale-.25);
+  return;
+ }
+
+ if(!triageModal.classList.contains('hidden')&&event.key==='Escape'){
+  if(!triageOutletList.classList.contains('hidden')){
+   triageOutletList.classList.add('hidden');
+  }else{
+   closeTriageModal();
+  }
+ }
+});
+
+// =================================================
+// 16. INITIALIZATION
+// =================================================
+
+renderDB();
+render();
+
+console.log(
+ `Outlet File Manager aktif. ${outlets.length} outlet dimuat.`
+);
+
+})();
+</script>
+</body>
+</html>
