@@ -35,7 +35,7 @@
             
             <h3 class="text-xl font-bold text-white text-center mb-2">Unduh Database?</h3>
             <p class="text-sm text-slate-400 text-center mb-8 leading-relaxed">
-                Anda akan mengunduh <span class="font-bold text-slate-200">DATABASE FAKTUR PAJAK.xlsx</span> terbaru dari repositori.
+                Anda akan mengunduh <span id="modalFileName" class="font-bold text-slate-200">DATABASE FAKTUR PAJAK.xlsx</span> terbaru dari repositori.
             </p>
             
             <div class="flex gap-3 w-full">
@@ -102,6 +102,10 @@
                 <i data-lucide="folder-open" class="w-5 h-5"></i> Sortir Arsip Nota
             </button>
 
+            <button onclick="loadApp('Filter Nota', 'filter nota.html', 'file-search', this)" class="menu-item text-slate-300 border-transparent border-r-4 w-full flex items-center gap-3 px-6 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition text-left">
+                <i data-lucide="file-search" class="w-5 h-5"></i> Filter Nota
+            </button>
+
             <button onclick="loadApp('Piutang Bulanan', 'piutang_bulanan.html', 'folder-open', this)" class="menu-item text-slate-300 border-transparent border-r-4 w-full flex items-center gap-3 px-6 py-3 text-sm font-medium hover:bg-slate-800 hover:text-white transition text-left">
                 <i data-lucide="file-text" class="w-5 h-5"></i> Piutang Bulanan
             </button>
@@ -109,9 +113,14 @@
             <div class="my-6 border-t border-slate-800 mx-6"></div>
 
             <p class="px-6 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Pusat Data</p>
-            <div class="px-4">
-                <button onclick="openDownloadModal()" class="w-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-lg shadow-emerald-500/5 hover:-translate-y-0.5">
+            <div class="px-4 space-y-2">
+                <button onclick="openDownloadModal('faktur')" class="w-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all shadow-lg shadow-emerald-500/5 hover:-translate-y-0.5">
                     <i data-lucide="database-backup" class="w-4 h-4"></i> Unduh Update DB
+                </button>
+
+                <!-- TOMBOL BARU: UNDUH DATABASE DADING -->
+                <button onclick="openDownloadModal('dading')" class="w-full bg-teal-500/10 text-teal-400 border border-teal-500/30 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold hover:bg-teal-600 hover:text-white hover:border-teal-600 transition-all shadow-lg shadow-teal-500/5 hover:-translate-y-0.5">
+                    <i data-lucide="database" class="w-4 h-4"></i> Unduh DB Dading
                 </button>
             </div>
         </nav>
@@ -191,15 +200,27 @@
         // --- MODERN DOWNLOAD LOGIC ---
         const dlModal = document.getElementById('downloadModal');
         const dlContent = document.getElementById('downloadModalContent');
+        const modalFileName = document.getElementById('modalFileName');
         const toast = document.getElementById('toastSuccess');
         
-        // Sesuaikan dengan nama file yang ada di Github-mu
-        const dbUrl = 'DATABASE FAKTUR PAJAK.xlsx';
+        // Sesuaikan nama file yang ada di repositori/folder Anda di sini
+        const dbFakturUrl = 'DATABASE FAKTUR PAJAK.xlsx';
+        const dbDadingUrl = 'DATABASE DADING.xlsx'; // <-- Ganti dengan nama file DB Dading Anda
 
-        function openDownloadModal() {
+        let activeDownloadUrl = dbFakturUrl;
+
+        function openDownloadModal(type) {
+            if (type === 'dading') {
+                activeDownloadUrl = dbDadingUrl;
+            } else {
+                activeDownloadUrl = dbFakturUrl;
+            }
+
+            // Menampilkan nama file otomatis di teks konfirmasi modal
+            modalFileName.textContent = activeDownloadUrl.split('/').pop();
+
             dlModal.classList.remove('hidden');
             dlModal.classList.add('flex');
-            // Sedikit delay agar animasi scale dan opacity terlihat mulus
             setTimeout(() => {
                 dlModal.classList.remove('opacity-0');
                 dlContent.classList.remove('scale-95');
@@ -216,21 +237,17 @@
         }
 
         function executeDownload() {
-            // Tutup modal
             closeDownloadModal();
             
-            // Jalankan proses download (trigger anchor link)
             const link = document.createElement('a');
-            link.href = dbUrl;
+            link.href = activeDownloadUrl;
             link.download = ''; 
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
-            // Tampilkan notifikasi toast sukses (muncul dari bawah)
             setTimeout(() => {
                 toast.classList.remove('translate-y-20', 'opacity-0');
-                // Sembunyikan otomatis setelah 3 detik
                 setTimeout(() => {
                     toast.classList.add('translate-y-20', 'opacity-0');
                 }, 3000);
